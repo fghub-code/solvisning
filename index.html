@@ -51,9 +51,6 @@
       border-radius: 50%;
       border: 4px solid rgba(255, 255, 255, 0.9);
       background: rgba(255, 255, 255, 0.25);
-      /* backdrop-filter suddar det som ligger bakom knappen, ger en
-         glasaktig känsla. Stöds inte överallt, men är bara kosmetik. */
-      backdrop-filter: blur(4px);
       cursor: pointer;
     }
 
@@ -74,32 +71,57 @@
       text-align: center;
       line-height: 1.5;
     }
+
+    /* Liten statusrad högst upp. Visar vad appen gör just nu medan
+       kameran startar, försvinner när bilden är igång. */
+    #status {
+      position: fixed;
+      top: calc(12px + env(safe-area-inset-top));
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.6);
+      color: #fff;
+      font-size: 13px;
+    }
   </style>
 </head>
 
 <body>
   <div id="scen">
     <!-- playsinline krävs på iOS, annars försöker Safari spela videon
-         i helskärm med egna kontroller. muted + autoplay gör att den
-         får starta utan att användaren trycker play. -->
-    <video id="kamera" playsinline muted autoplay></video>
+         i helskärm med egna kontroller. muted behövs för att webbläsaren
+         ska låta oss starta videon utan ett knapptryck. -->
+    <video id="kamera" playsinline muted></video>
   </div>
 
   <!-- Knappen finns men gör inget än. aria-label ger den ett namn för
        skärmläsare eftersom den inte har någon text. -->
   <button id="ta-bild" type="button" aria-label="Ta bild"></button>
 
+  <div id="status">Startar kameran…</div>
   <div id="fel" hidden></div>
 
   <script>
     // Hämta referenser till elementen vi ska jobba med.
     const video = document.getElementById('kamera');
     const felruta = document.getElementById('fel');
+    const statusrad = document.getElementById('status');
 
-    // Liten hjälpfunktion: visa ett felmeddelande i stället för kamerabilden.
+    // Skriv en rad både på skärmen och i konsolen, så att vi kan följa
+    // förloppet. Öppna webbläsarens konsol med Cmd+Alt+I om något strular.
+    function status(text) {
+      statusrad.textContent = text;
+      console.log('[solvisning]', text);
+    }
+
+    // Visa ett felmeddelande i stället för kamerabilden.
     function visaFel(text) {
+      statusrad.hidden = true;
       felruta.textContent = text;
       felruta.hidden = false;
+      console.error('[solvisning]', text);
     }
 
     async function startaKamera() {
@@ -110,22 +132,76 @@
         return;
       }
 
+      let strom;
       try {
+        status('Frågar efter kamera…');
         // Be webbläsaren om en videoström.
         // facingMode: 'environment' = baksideskameran på en mobil.
         // 'ideal' betyder önskemål, inte krav, så det funkar även på en
         // dator som bara har frontkamera.
-        const strom = await navigator.mediaDevices.getUserMedia({
+        strom = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: { ideal: 'environment' } },
           audio: false
         });
-
-        // Koppla strömmen till video-elementet. Då börjar bilden synas.
-        video.srcObject = strom;
       } catch (err) {
         // Vanligaste felen: användaren nekade behörighet, eller ingen
-        // kamera hittades.
-        visaFel('Kunde inte starta kameran: ' + err.message);
+        // kamera hittades. err.name säger vilket.
+        visaFel('Kunde inte hämta kameran: ' + err.name + ' – ' + err.message);
+        return;
+      }
+
+      // Koppla strömmen till video-elementet.
+      video.srcObject = strom;
+
+      // Diagnostik: vilket kameraspår fick vi, och levererar det bilder?
+      // getVideoTracks() ger en lista, vi tar det första spåret.
+      const spar = strom.getVideoTracks()[0];
+      console.log('[solvisning] spår:', spar && spar.label);
+      console.log('[solvisning] readyState:', spar && spar.readyState);
+      // track.muted = true betyder att källan inte skickar några bildrutor,
+      // oftast för att en annan app har lagt beslag på kameran.
+      console.log('[solvisning] spår muted:', spar && spar.muted);
+      console.log('[solvisning] inställningar:', spar && JSON.stringify(spar.getSettings()));
+
+      // Lyssna på om spåret blir muted/unmuted medan appen är igång.
+      if (spar) {
+        spar.addEventListener('mute', () => status('Kameran ger ingen bild (muted)'));
+        spar.addEventListener('unmute', () => status('Kameran ger bild igen'));
+      }
+
+      // När videon fått sin första bildruta vet vi den faktiska storleken.
+      video.addEventListener('loadedmetadata', () => {
+        console.log('[solvisning] videostorlek:', video.videoWidth, 'x', video.videoHeight);
+      });
+
+      // srcObject räcker inte alltid för att bilden ska börja spela.
+      // Vissa webbläsare struntar i autoplay här, så vi startar själva.
+      // play() ger ett löfte som avvisas om webbläsaren blockerar det.
+      try {
+        status('Startar uppspelning…');
+        await video.play();
+        // Vänta en kort stund och kontrollera att det faktiskt kommer bilder.
+        setTimeout(() => {
+          if (video.videoWidth === 0) {
+            status('Ansluten, men får ingen bild. Stäng andra appar som använder kameran.');
+          } else if (spar && spar.muted) {
+            status('Kameran är upptagen av en annan app.');
+          } else {
+            status('Kameran igång: ' + video.videoWidth + '×' + video.videoHeight);
+            setTimeout(() => { statusrad.hidden = true; }, 1500);
+          }
+        }, 600);
+      } catch (err) {
+        // Om webbläsaren vägrar autostarta: låt användaren trycka på skärmen.
+        status('Tryck på skärmen för att starta bilden');
+        document.body.addEventListener('click', async () => {
+          try {
+            await video.play();
+            statusrad.hidden = true;
+          } catch (e) {
+            visaFel('Uppspelningen blockeras: ' + e.message);
+          }
+        }, { once: true });
       }
     }
 
