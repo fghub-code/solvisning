@@ -58,7 +58,10 @@
       background: rgba(255, 255, 255, 0.5);
     }
 
-    /* Ruta för felmeddelanden. Döljs som standard med hidden-attributet. */
+    /* Ruta för felmeddelanden. Ligger som ett svart lager över allt.
+       display: flex behövs för att centrera texten, men en id-regel
+       väger tyngre än webbläsarens [hidden]-regel, så vi måste själva
+       säga åt rutan att försvinna när hidden-attributet är satt. */
     #fel {
       position: fixed;
       inset: 0;
@@ -70,6 +73,10 @@
       background: #000;
       text-align: center;
       line-height: 1.5;
+    }
+
+    #fel[hidden] {
+      display: none;
     }
 
     /* Liten statusrad högst upp. Visar vad appen gör just nu medan
