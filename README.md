@@ -6,7 +6,11 @@ Brief och handover finns i `OUTPUT/Solvisning/`.
 
 ## Status
 
-Steg 1: `index.html` visar mobilkamerans bild i helskärm med en avtryckarknapp som ännu inte gör något.
+Steg 1 klart och verifierat på iPhone: `index.html` visar mobilkamerans bild i helskärm med en avtryckarknapp som ännu inte gör något.
+
+Publicerad på GitHub Pages: https://fghub-code.github.io/solvisning/
+
+Nästa steg: avtryckaren fryser bilden och läser kompass och lutning i samma ögonblick.
 
 ## Så startar du lokalt
 
