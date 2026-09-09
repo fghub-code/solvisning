@@ -579,28 +579,37 @@
 
     // position sätts när geolokaliseringen svarat. { lat, lng }.
     let position = null;
+    let positionBegard = false;
 
-    function hamtaPosition() {
-      return new Promise((resolve) => {
-        if (!navigator.geolocation) {
-          status('Ingen geolokalisering i den här webbläsaren.');
-          resolve(null);
-          return;
-        }
-        navigator.geolocation.getCurrentPosition(
-          (p) => {
-            position = { lat: p.coords.latitude, lng: p.coords.longitude };
-            console.log('[solvisning] position:', position);
-            resolve(position);
-          },
-          (err) => {
-            status('Kunde inte hämta position: ' + err.message);
-            resolve(null);
-          },
-          // Fem sekunders tak, och ett par minuter gammal position duger.
-          { timeout: 5000, maximumAge: 120000 }
-        );
-      });
+    // Startar positionshämtningen. Vi väntar inte in den, utan låter
+    // panelen uppdatera sig när svaret kommer. Måste anropas direkt från
+    // knapptrycket, annars visar iOS ingen lov-ruta.
+    function begarPosition() {
+      if (positionBegard) return;
+      positionBegard = true;
+
+      if (!navigator.geolocation) {
+        status('Ingen geolokalisering i den här webbläsaren.');
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (p) => {
+          position = { lat: p.coords.latitude, lng: p.coords.longitude };
+          console.log('[solvisning] position:', position);
+          // Nu finns position, räkna om panelen om den redan visas.
+          if (reglageInit) lasAvReglage();
+        },
+        (err) => {
+          // Låt användaren prova igen genom att nolla flaggan.
+          positionBegard = false;
+          solText.textContent = 'Ingen position: ' + err.message;
+          console.warn('[solvisning] position-fel:', err);
+        },
+        // 15 sekunder för en kall bestämning. Grov noggrannhet räcker för
+        // solberäkning, och en position upp till fem minuter gammal duger.
+        { timeout: 15000, maximumAge: 300000, enableHighAccuracy: false }
+      );
     }
 
     // Snävar tidsreglaget till soluppgång–solnedgång för valt datum.
@@ -721,16 +730,13 @@
         return;
       }
 
-      // Första gången: starta sensorerna och hämta position innan vi fryser.
-      // På iOS dyker lov-rutor upp här, en för rörelse och en för plats.
-      // Vi väntar in svaren och fryser sedan ändå, så första bilden kan
-      // sakna kompass- eller soldata om du precis tryckt ja.
+      // Be om position direkt, medan knapptrycket fortfarande "räknas".
+      // Den fylls i när svaret kommer, vi väntar inte in den.
+      begarPosition();
+
+      // Starta rörelsesensorn. Här väntar vi in lov-rutan, men bara den.
       if (!sensorerStartade) {
         sensorerStartade = await startaSensorer();
-      }
-      if (!position) {
-        await hamtaPosition();
-        if (reglageInit) lasAvReglage();
       }
 
       frysBild();
