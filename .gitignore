@@ -1,0 +1,15 @@
+# macOS
+.DS_Store
+
+# Editorer
+.vscode/
+.idea/
+
+# Miljöfiler och nycklar, ska aldrig i git
+.env
+.env.*
+*.key
+*.pem
+
+# Beroenden, om vi någon gång lägger till en byggkedja
+node_modules/

@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Solvisning</title>
+
+  <style>
+    /* Nollställ marginaler och låt sidan fylla hela skärmen.
+       height: 100% på html och body behövs för att video-elementet
+       ska kunna bli 100% högt längre ner. */
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: #000;
+      /* Hindra att sidan går att dra/zooma som en vanlig webbsida.
+         Det ska kännas som en app, inte ett dokument. */
+      overscroll-behavior: none;
+      font-family: -apple-system, system-ui, sans-serif;
+    }
+
+    /* Wrappen är hela skärmen. position: fixed gör att den ligger
+       stilla även om något råkar bli för stort. */
+    #scen {
+      position: fixed;
+      inset: 0;                /* kortform för top/right/bottom/left: 0 */
+      overflow: hidden;
+    }
+
+    /* Videon fyller hela scenen. object-fit: cover betyder att bilden
+       beskärs så att den täcker ytan utan svarta kanter, precis som
+       en kameraapp. */
+    #kamera {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* Knappen ligger ovanpå videon, centrerad en bit upp från nederkanten.
+       env(safe-area-inset-bottom) håller den ovanför iPhones hemknappstreck. */
+    #ta-bild {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: calc(32px + env(safe-area-inset-bottom));
+
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      border: 4px solid rgba(255, 255, 255, 0.9);
+      background: rgba(255, 255, 255, 0.25);
+      /* backdrop-filter suddar det som ligger bakom knappen, ger en
+         glasaktig känsla. Stöds inte överallt, men är bara kosmetik. */
+      backdrop-filter: blur(4px);
+      cursor: pointer;
+    }
+
+    #ta-bild:active {
+      background: rgba(255, 255, 255, 0.5);
+    }
+
+    /* Ruta för felmeddelanden. Döljs som standard med hidden-attributet. */
+    #fel {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      color: #fff;
+      background: #000;
+      text-align: center;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="scen">
+    <!-- playsinline krävs på iOS, annars försöker Safari spela videon
+         i helskärm med egna kontroller. muted + autoplay gör att den
+         får starta utan att användaren trycker play. -->
+    <video id="kamera" playsinline muted autoplay></video>
+  </div>
+
+  <!-- Knappen finns men gör inget än. aria-label ger den ett namn för
+       skärmläsare eftersom den inte har någon text. -->
+  <button id="ta-bild" type="button" aria-label="Ta bild"></button>
+
+  <div id="fel" hidden></div>
+
+  <script>
+    // Hämta referenser till elementen vi ska jobba med.
+    const video = document.getElementById('kamera');
+    const felruta = document.getElementById('fel');
+
+    // Liten hjälpfunktion: visa ett felmeddelande i stället för kamerabilden.
+    function visaFel(text) {
+      felruta.textContent = text;
+      felruta.hidden = false;
+    }
+
+    async function startaKamera() {
+      // getUserMedia finns bara i säkra sammanhang: https eller localhost.
+      // Öppnar du filen direkt från skrivbordet (file://) saknas det helt.
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        visaFel('Kameran kräver att sidan körs över https eller på localhost.');
+        return;
+      }
+
+      try {
+        // Be webbläsaren om en videoström.
+        // facingMode: 'environment' = baksideskameran på en mobil.
+        // 'ideal' betyder önskemål, inte krav, så det funkar även på en
+        // dator som bara har frontkamera.
+        const strom = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: 'environment' } },
+          audio: false
+        });
+
+        // Koppla strömmen till video-elementet. Då börjar bilden synas.
+        video.srcObject = strom;
+      } catch (err) {
+        // Vanligaste felen: användaren nekade behörighet, eller ingen
+        // kamera hittades.
+        visaFel('Kunde inte starta kameran: ' + err.message);
+      }
+    }
+
+    startaKamera();
+  </script>
+</body>
+</html>
