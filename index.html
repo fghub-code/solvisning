@@ -54,6 +54,44 @@
       display: none;
     }
 
+    /* Varm ljusövertoning, visas när solen är innanför bildens kanter.
+       pointer-events: none så att den inte fångar tryck. Själva färgen
+       och mittpunkten sätts från JS. */
+    #solglans {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    #solglans[hidden] {
+      display: none;
+    }
+
+    /* Solmarkören. margin drar tillbaka den ett halvt varv så att dess
+       mitt hamnar på den beräknade punkten. */
+    #solmarkor {
+      position: absolute;
+      width: 40px;
+      height: 40px;
+      margin: -20px 0 0 -20px;
+      border-radius: 50%;
+      background: rgba(255, 214, 102, 0.95);
+      box-shadow: 0 0 22px 8px rgba(255, 179, 71, 0.75);
+      pointer-events: none;
+    }
+
+    #solmarkor[hidden] {
+      display: none;
+    }
+
+    /* När solen är utanför bilden visas markören blekare vid kanten. */
+    #solmarkor.utanfor {
+      opacity: 0.45;
+      width: 26px;
+      height: 26px;
+      margin: -13px 0 0 -13px;
+    }
+
     /* Knappen ligger ovanpå videon, centrerad en bit upp från nederkanten.
        env(safe-area-inset-bottom) håller den ovanför iPhones hemknappstreck. */
     #ta-bild {
@@ -177,6 +215,9 @@
     <video id="kamera" playsinline muted></video>
     <!-- Den frysta bilden ritas hit. Ligger i samma wrapp som videon. -->
     <canvas id="foto" hidden></canvas>
+    <!-- Varm övertoning och solmarkör, ovanpå den frysta bilden. -->
+    <div id="solglans" hidden></div>
+    <div id="solmarkor" hidden></div>
   </div>
 
   <!-- Knappen finns men gör inget än. aria-label ger den ett namn för
@@ -394,7 +435,10 @@
     // --- 2a: frysa bilden ---
 
     const knapp = document.getElementById('ta-bild');
+    const scen = document.getElementById('scen');
     const canvas = document.getElementById('foto');
+    const solglans = document.getElementById('solglans');
+    const solmarkor = document.getElementById('solmarkor');
     const panel = document.getElementById('panel');
     const avlasning = document.getElementById('avlasning');
     const datumReglage = document.getElementById('datum');
@@ -677,6 +721,117 @@
       solText.textContent =
         'Solen: ' + Math.round(azimut) + '° i ' + vaderstreck(azimut) + '\n'
         + Math.round(hojd) + '° över horisonten';
+
+      projiceraSol();
+    }
+
+
+    // --- 4b: rita in solen i bilden ---
+
+    // Antaget horisontellt synfält när kameran inte kan berätta sitt eget.
+    // Briefen säger 65 grader. Justeras här om markören hamnar snett.
+    const FOV_HORISONTELL = 65;
+
+    // Tecken på rollkompensationen. Håll telefonen lite snett i sidled och
+    // se åt vilket håll markören glider. Byt till -1 om den glider fel väg.
+    const ROLL_TECKEN = 1;
+
+    // Normaliserar en vinkel till intervallet -180 till 180.
+    function normaliseraGrader(g) {
+      return ((g + 540) % 360) - 180;
+    }
+
+    // Räknar ut var solen hamnar på skärmen och flyttar markören dit.
+    // Bygger på den frysta bildens orientering, inte den live.
+    function projiceraSol() {
+      const o = bild && bild.orientering;
+
+      // Utan sol över horisonten, utan riktning eller utan fryst bild:
+      // dölj markör och glans.
+      if (!fryst || !sol || sol.hojd <= 0 || !o || o.riktning === null) {
+        solmarkor.hidden = true;
+        solglans.hidden = true;
+        return;
+      }
+
+      const grad = Math.PI / 180;
+
+      // Kamerans riktning och lutning i frysögonblicket.
+      const kameraAzimut = o.riktning;
+      const kameraLutning = (typeof o.beta === 'number') ? o.beta - 90 : 0;
+      const roll = (typeof o.gamma === 'number') ? o.gamma : 0;
+
+      // Solens vinkel i förhållande till dit kameran pekar.
+      // dAz > 0 = solen till höger om mitten. dHojd > 0 = solen ovanför.
+      const dAz = normaliseraGrader(sol.azimut - kameraAzimut);
+      const dHojd = sol.hojd - kameraLutning;
+
+      // Solen bakom kameran: inget att rita.
+      if (Math.abs(dAz) > 89) {
+        solmarkor.hidden = true;
+        solglans.hidden = true;
+        return;
+      }
+
+      // Hålkameramodell. f är brännvidden räknad i canvas-pixlar:
+      // hur många pixlar en viss vinkel motsvarar. Räknas ut från att
+      // canvasens bredd spänner FOV_HORISONTELL grader.
+      const cw = canvas.width, ch = canvas.height;
+      const f = (cw / 2) / Math.tan((FOV_HORISONTELL / 2) * grad);
+
+      // Pixelavstånd från bildens mitt, före rollrotation.
+      let ox = f * Math.tan(dAz * grad);
+      let oy = -f * Math.tan(dHojd * grad);   // minus för att y växer nedåt
+
+      // Rollkompensation: rotera punkten runt bildens mitt lika mycket
+      // som telefonen lutar i sidled, fast åt andra hållet.
+      const r = -roll * grad * ROLL_TECKEN;
+      const rx = ox * Math.cos(r) - oy * Math.sin(r);
+      const ry = ox * Math.sin(r) + oy * Math.cos(r);
+
+      // Punkt i canvasens pixelrutnät.
+      const canvasX = cw / 2 + rx;
+      const canvasY = ch / 2 + ry;
+
+      console.log('[solvisning] projektion',
+        'canvas', cw + 'x' + ch,
+        'dAz', dAz.toFixed(1), 'dHöjd', dHojd.toFixed(1),
+        'roll', roll.toFixed(1));
+
+      // Canvasen visas med object-fit: cover i scenen. Räkna om samma
+      // skalning och centrering som webbläsaren gör, så att punkten
+      // hamnar rätt på skärmen.
+      const sw = scen.clientWidth, sh = scen.clientHeight;
+      const k = Math.max(sw / cw, sh / ch);
+      const skarmX = (sw - cw * k) / 2 + canvasX * k;
+      const skarmY = (sh - ch * k) / 2 + canvasY * k;
+
+      // Är punkten innanför skärmen?
+      const inne = skarmX >= 0 && skarmX <= sw && skarmY >= 0 && skarmY <= sh;
+
+      // Placera markören. Utanför skärmen klämmer vi den till kanten och
+      // gör den mindre och blekare.
+      const klamdX = Math.min(sw, Math.max(0, skarmX));
+      const klamdY = Math.min(sh, Math.max(0, skarmY));
+      solmarkor.style.left = (inne ? skarmX : klamdX) + 'px';
+      solmarkor.style.top = (inne ? skarmY : klamdY) + 'px';
+      solmarkor.classList.toggle('utanfor', !inne);
+      solmarkor.hidden = false;
+
+      // Varm övertoning bara när solen faktiskt är i bild. Blir starkare
+      // ju högre solen står.
+      if (inne) {
+        const styrka = Math.min(0.5, 0.2 + sol.hojd / 180);
+        const xProc = (skarmX / sw) * 100;
+        const yProc = (skarmY / sh) * 100;
+        solglans.style.background =
+          'radial-gradient(circle at ' + xProc.toFixed(1) + '% ' + yProc.toFixed(1) + '%, '
+          + 'rgba(255, 180, 90, ' + styrka.toFixed(2) + '), '
+          + 'rgba(255, 180, 90, 0) 55%)';
+        solglans.hidden = false;
+      } else {
+        solglans.hidden = true;
+      }
     }
 
 
@@ -712,6 +867,9 @@
       if (!reglageInit) initReglage();
       panel.hidden = false;
 
+      // Räkna om solens läge mot den här bildens orientering och rita den.
+      uppdateraSol();
+
       status('Bild fryst. Tryck på bilden för att ta om.');
       statusrad.hidden = false;
     }
@@ -719,6 +877,8 @@
     function atergaTillLive() {
       canvas.hidden = true;
       panel.hidden = true;
+      solmarkor.hidden = true;
+      solglans.hidden = true;
       fryst = false;
       statusrad.hidden = true;
     }

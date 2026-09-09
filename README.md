@@ -11,9 +11,12 @@ Publicerad på GitHub Pages: https://fghub-code.github.io/solvisning/
 Klart och verifierat på iPhone:
 
 - Steg 1: kamerabild i helskärm, avtryckarknapp
-- Steg 2: knappen fryser bilden på en canvas och läser kompass och lutning i samma ögonblick, värdena visas i en panel
+- Steg 2: knappen fryser bilden på en canvas och läser kompass och lutning i samma ögonblick
+- Steg 3: reglage för datum och tid
+- Steg 4a: position via geolocation, SunCalc inlagd, solens azimut och höjd visas, tidsreglaget snävt till soluppgång–solnedgång
+- Steg 4b: solmarkör och varm övertoning projiceras in i bilden (hålkameramodell, 65° synfält, rollkompensation)
 
-Nästa steg: reglage för datum och tid, sedan solberäkning med SunCalc och en solmarkör i bilden.
+Kvar: kalibrera synfält och rolltecken mot verkligheten i dagsljus, kort integritetstext i gränssnittet.
 
 ## Så startar du lokalt
 
