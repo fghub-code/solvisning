@@ -38,6 +38,22 @@
       display: block;
     }
 
+    /* Canvasen ligger exakt ovanpå videon och är dold tills vi fryser
+       en bild. Samma object-fit: cover så att den frysta bilden hamnar
+       likadant som live-bilden gjorde. */
+    #foto {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    #foto[hidden] {
+      display: none;
+    }
+
     /* Knappen ligger ovanpå videon, centrerad en bit upp från nederkanten.
        env(safe-area-inset-bottom) håller den ovanför iPhones hemknappstreck. */
     #ta-bild {
@@ -101,6 +117,8 @@
          i helskärm med egna kontroller. muted behövs för att webbläsaren
          ska låta oss starta videon utan ett knapptryck. -->
     <video id="kamera" playsinline muted></video>
+    <!-- Den frysta bilden ritas hit. Ligger i samma wrapp som videon. -->
+    <canvas id="foto" hidden></canvas>
   </div>
 
   <!-- Knappen finns men gör inget än. aria-label ger den ett namn för
@@ -213,6 +231,57 @@
     }
 
     startaKamera();
+
+
+    // --- 2a: frysa bilden ---
+
+    const knapp = document.getElementById('ta-bild');
+    const canvas = document.getElementById('foto');
+    // getContext('2d') ger oss ett ritobjekt. Allt vi ritar på canvasen
+    // går genom det.
+    const rityta = canvas.getContext('2d');
+
+    // Håller reda på om vi visar en fryst bild eller live-video just nu.
+    let fryst = false;
+
+    function frysBild() {
+      // Ingen bild att frysa om videon inte har någon storlek än.
+      if (video.videoWidth === 0) return;
+
+      // Sätt canvasens interna pixelstorlek till videons faktiska
+      // upplösning. Det här är canvasens "riktiga" storlek, skild från
+      // hur stor den visas på skärmen (det styr CSS).
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      // Rita videons nuvarande bildruta till canvasen, från hörn till hörn.
+      // I samma ögonblick som den här raden körs fryses bilden.
+      rityta.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      // Visa canvasen ovanpå videon.
+      canvas.hidden = false;
+      fryst = true;
+      status('Bild fryst. Tryck på bilden för att ta om.');
+      statusrad.hidden = false;
+    }
+
+    function atergaTillLive() {
+      canvas.hidden = true;
+      fryst = false;
+      statusrad.hidden = true;
+    }
+
+    // Knappen: frys om vi är live, gå tillbaka om vi redan är frysta.
+    knapp.addEventListener('click', () => {
+      if (fryst) {
+        atergaTillLive();
+      } else {
+        frysBild();
+      }
+    });
+
+    // Tryck på den frysta bilden för att gå tillbaka till live.
+    canvas.addEventListener('click', atergaTillLive);
   </script>
 </body>
 </html>
