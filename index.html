@@ -212,10 +212,11 @@
       console.log('[solvisning] spår muted:', spar && spar.muted);
       console.log('[solvisning] inställningar:', spar && JSON.stringify(spar.getSettings()));
 
-      // Lyssna på om spåret blir muted/unmuted medan appen är igång.
+      // Logga om spåret blir muted/unmuted medan appen är igång.
+      // Bara till konsolen, så det inte skriver över annan statustext.
       if (spar) {
-        spar.addEventListener('mute', () => status('Kameran ger ingen bild (muted)'));
-        spar.addEventListener('unmute', () => status('Kameran ger bild igen'));
+        spar.addEventListener('mute', () => console.log('[solvisning] spår muted'));
+        spar.addEventListener('unmute', () => console.log('[solvisning] spår unmuted'));
       }
 
       // När videon fått sin första bildruta vet vi den faktiska storleken.

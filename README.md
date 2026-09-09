@@ -6,11 +6,14 @@ Brief och handover finns i `OUTPUT/Solvisning/`.
 
 ## Status
 
-Steg 1 klart och verifierat på iPhone: `index.html` visar mobilkamerans bild i helskärm med en avtryckarknapp som ännu inte gör något.
-
 Publicerad på GitHub Pages: https://fghub-code.github.io/solvisning/
 
-Nästa steg: avtryckaren fryser bilden och läser kompass och lutning i samma ögonblick.
+Klart och verifierat på iPhone:
+
+- Steg 1: kamerabild i helskärm, avtryckarknapp
+- Steg 2: knappen fryser bilden på en canvas och läser kompass och lutning i samma ögonblick, värdena visas i en panel
+
+Nästa steg: reglage för datum och tid, sedan solberäkning med SunCalc och en solmarkör i bilden.
 
 ## Så startar du lokalt
 
