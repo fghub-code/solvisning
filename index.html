@@ -466,6 +466,26 @@
     let orientering = null;
     let sensorerStartade = false;
 
+    // Tyngdkraftsvektorn i telefonens koordinater, från rörelsesensorn.
+    // Den används för att räkna ut hur telefonen lutar i sidled (roll),
+    // vilket gamma från orienteringssensorn inte klarar när telefonen
+    // står upprätt.
+    let gravitation = null;
+
+    function taEmotRorelse(e) {
+      const g = e.accelerationIncludingGravity;
+      if (g && (g.x !== null || g.y !== null)) {
+        gravitation = { x: g.x || 0, y: g.y || 0, z: g.z || 0 };
+      }
+    }
+
+    // Roll i grader ur tyngdkraften. 0 när telefonen hålls rakt i portrait.
+    // Tecknet rättas till vid kalibrering med ROLL_TECKEN. Utan data: 0.
+    function rollUrGravitation(grav) {
+      if (!grav) return 0;
+      return Math.atan2(grav.x, -grav.y) * 180 / Math.PI;
+    }
+
     // Ett orienteringsevent kommer flera gånger i sekunden. Vi plockar ut
     // det vi behöver och sparar i orientering.
     function taEmotOrientering(e) {
@@ -508,10 +528,22 @@
         }
       }
 
+      // Rörelsesensorn (tyngdkraften) kan kräva ett eget lov på iOS.
+      if (typeof DeviceMotionEvent !== 'undefined' &&
+          typeof DeviceMotionEvent.requestPermission === 'function') {
+        try {
+          await DeviceMotionEvent.requestPermission();
+        } catch (err) {
+          console.warn('[solvisning] rörelselov nekades:', err);
+        }
+      }
+
       // Android skickar absolut väderstreck via ett eget event.
       window.addEventListener('deviceorientationabsolute', taEmotOrientering);
       // iOS och övriga via det vanliga eventet.
       window.addEventListener('deviceorientation', taEmotOrientering);
+      // Tyngdkraften för rollberäkningen.
+      window.addEventListener('devicemotion', taEmotRorelse);
       return true;
     }
 
@@ -589,12 +621,10 @@
     }
 
     // Läser av båda reglagen, uppdaterar texten och räknar om solen.
+    // Tidsreglaget har fast skala, hela dygnet, så tumgreppet står still
+    // när man bara ändrar datum.
     function lasAvReglage() {
       valtDatum = dagTillDatum(Number(datumReglage.value));
-      valdTid = Number(tidReglage.value);
-      // När datumet ändras flyttar sig soluppgång och solnedgång, så
-      // reglagets gränser måste räknas om innan vi läser klockslaget.
-      uppdateraSoltider();
       valdTid = Number(tidReglage.value);
       datumText.textContent = formateraDatum(valtDatum);
       tidText.textContent = formateraTid(valdTid);
@@ -607,8 +637,6 @@
       // Millisekunder sedan årsskiftet delat med ett dygn = dagnummer.
       const dagnummer = Math.floor((idag - new Date(arNu, 0, 1)) / 86400000);
       datumReglage.value = dagnummer;
-      valtDatum = dagTillDatum(dagnummer);
-      uppdateraSoltider();
       tidReglage.value = idag.getHours() * 60 + idag.getMinutes();
       lasAvReglage();
       reglageInit = true;
@@ -656,33 +684,21 @@
       );
     }
 
-    // Snävar tidsreglaget till soluppgång–solnedgång för valt datum.
-    // Utan position lämnar vi det på hela dygnet.
-    function uppdateraSoltider() {
-      if (!position) {
-        tidReglage.min = 0;
-        tidReglage.max = 1439;
-        return;
-      }
+    // Soluppgång och solnedgång för valt datum, som text att visa.
+    // Returnerar null om något saknas.
+    function soltiderText() {
+      if (!position) return null;
 
       const t = SunCalc.getTimes(valdTidpunkt(), position.lat, position.lng);
       const upp = t.sunrise, ned = t.sunset;
 
-      // Vid midnattssol eller polarnatt blir tiderna ogiltiga (NaN).
+      // Vid midnattssol eller polarnatt blir tiderna ogiltiga.
       if (isNaN(upp) || isNaN(ned)) {
-        tidReglage.min = 0;
-        tidReglage.max = 1439;
-        return;
+        return sol && sol.hojd > 0 ? 'Solen är uppe hela dygnet' : 'Solen går inte upp';
       }
 
       const minuterAv = (d) => d.getHours() * 60 + d.getMinutes();
-      tidReglage.min = minuterAv(upp);
-      tidReglage.max = minuterAv(ned);
-
-      // Klämma in nuvarande värde inom de nya gränserna.
-      const v = Number(tidReglage.value);
-      if (v < tidReglage.min) tidReglage.value = tidReglage.min;
-      if (v > tidReglage.max) tidReglage.value = tidReglage.max;
+      return 'Sol uppe ' + formateraTid(minuterAv(upp)) + '–' + formateraTid(minuterAv(ned));
     }
 
     // Väderstreck som bokstäver, för läsbarheten.
@@ -712,15 +728,17 @@
 
       sol = { azimut: azimut, hojd: hojd };
 
+      const fonster = soltiderText();
+      const rad3 = fonster ? '\n' + fonster : '';
+
       if (hojd < 0) {
         solText.textContent = 'Solen är under horisonten då.\n'
-          + 'Azimut ' + Math.round(azimut) + '°, ' + Math.round(hojd) + '°';
-        return;
+          + 'Azimut ' + Math.round(azimut) + '°, ' + Math.round(hojd) + '°' + rad3;
+      } else {
+        solText.textContent =
+          'Solen: ' + Math.round(azimut) + '° i ' + vaderstreck(azimut) + '\n'
+          + Math.round(hojd) + '° över horisonten' + rad3;
       }
-
-      solText.textContent =
-        'Solen: ' + Math.round(azimut) + '° i ' + vaderstreck(azimut) + '\n'
-        + Math.round(hojd) + '° över horisonten';
 
       projiceraSol();
     }
@@ -759,7 +777,9 @@
       // Kamerans riktning och lutning i frysögonblicket.
       const kameraAzimut = o.riktning;
       const kameraLutning = (typeof o.beta === 'number') ? o.beta - 90 : 0;
-      const roll = (typeof o.gamma === 'number') ? o.gamma : 0;
+      // Roll ur tyngdkraften, inte ur gamma. gamma blir opålitlig när
+      // telefonen står upprätt, vilket är just hur man håller den här.
+      const roll = rollUrGravitation(bild.gravitation);
 
       // Solens vinkel i förhållande till dit kameran pekar.
       // dAz > 0 = solen till höger om mitten. dHojd > 0 = solen ovanför.
@@ -796,7 +816,10 @@
       console.log('[solvisning] projektion',
         'canvas', cw + 'x' + ch,
         'dAz', dAz.toFixed(1), 'dHöjd', dHojd.toFixed(1),
-        'roll', roll.toFixed(1));
+        'roll', roll.toFixed(1),
+        'grav', bild.gravitation
+          ? bild.gravitation.x.toFixed(1) + ',' + bild.gravitation.y.toFixed(1) + ',' + bild.gravitation.z.toFixed(1)
+          : 'saknas');
 
       // Canvasen visas med object-fit: cover i scenen. Räkna om samma
       // skalning och centrering som webbläsaren gör, så att punkten
@@ -855,6 +878,7 @@
       bild = {
         canvas: canvas,
         orientering: orientering,
+        gravitation: gravitation,
         tagen: new Date()
       };
 
