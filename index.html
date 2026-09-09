@@ -108,6 +108,29 @@
       color: #fff;
       font-size: 13px;
     }
+
+    /* Panel nedtill som visar de avlästa värdena efter en frysning.
+       Ligger ovanför knappen. white-space: pre-line gör att radbrytningar
+       i texten faktiskt bryter rad. */
+    #avlasning {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: calc(128px + env(safe-area-inset-bottom));
+      max-width: 90vw;
+      padding: 10px 14px;
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.6);
+      color: #fff;
+      font-size: 14px;
+      line-height: 1.4;
+      text-align: center;
+      white-space: pre-line;
+    }
+
+    #avlasning[hidden] {
+      display: none;
+    }
   </style>
 </head>
 
@@ -126,6 +149,7 @@
   <button id="ta-bild" type="button" aria-label="Ta bild"></button>
 
   <div id="status">Startar kameran…</div>
+  <div id="avlasning" hidden></div>
   <div id="fel" hidden></div>
 
   <script>
@@ -237,12 +261,110 @@
 
     const knapp = document.getElementById('ta-bild');
     const canvas = document.getElementById('foto');
+    const avlasning = document.getElementById('avlasning');
     // getContext('2d') ger oss ett ritobjekt. Allt vi ritar på canvasen
     // går genom det.
     const rityta = canvas.getContext('2d');
 
     // Håller reda på om vi visar en fryst bild eller live-video just nu.
     let fryst = false;
+
+    // Här sparas den senast frysta bilden med sina avlästa värden.
+    // För tillfället använder vi bara det till att visa text, men i
+    // senare steg är det här solberäkningen utgår från.
+    let bild = null;
+
+
+    // --- 2b: läsa kompass och lutning ---
+
+    // orientering uppdateras hela tiden så länge sensorn är igång.
+    // Vi läser av den i frysögonblicket, inte senare.
+    let orientering = null;
+    let sensorerStartade = false;
+
+    // Ett orienteringsevent kommer flera gånger i sekunden. Vi plockar ut
+    // det vi behöver och sparar i orientering.
+    function taEmotOrientering(e) {
+      // webkitCompassHeading finns bara på iOS. 0 = norr, medurs.
+      // På Android får vi i stället alpha, som räknas moturs från norr,
+      // så vi vänder på den med 360 - alpha.
+      let riktning = null;
+      if (typeof e.webkitCompassHeading === 'number') {
+        riktning = e.webkitCompassHeading;
+      } else if (e.absolute === true && typeof e.alpha === 'number') {
+        riktning = (360 - e.alpha) % 360;
+      }
+
+      orientering = {
+        riktning: riktning,                    // grader, dit kameran pekar
+        // webkitCompassAccuracy: ungefärligt fel i grader på iOS.
+        // Högt värde eller -1 betyder att kompassen inte litar på sig själv.
+        noggrannhet: (typeof e.webkitCompassAccuracy === 'number')
+          ? e.webkitCompassAccuracy : null,
+        beta: e.beta,     // lutning framåt/bakåt, 90 = telefonen upprätt
+        gamma: e.gamma,   // lutning i sidled
+        tidpunkt: new Date()
+      };
+    }
+
+    async function startaSensorer() {
+      // På iOS 13+ måste vi be om lov, och anropet måste ske från ett
+      // knapptryck. Därför ligger det här och inte i sidladdningen.
+      if (typeof DeviceOrientationEvent !== 'undefined' &&
+          typeof DeviceOrientationEvent.requestPermission === 'function') {
+        try {
+          const svar = await DeviceOrientationEvent.requestPermission();
+          if (svar !== 'granted') {
+            status('Rörelsesensorn nekades. Kompassen är avstängd.');
+            return false;
+          }
+        } catch (err) {
+          status('Kunde inte fråga om rörelsesensorn: ' + err.message);
+          return false;
+        }
+      }
+
+      // Android skickar absolut väderstreck via ett eget event.
+      window.addEventListener('deviceorientationabsolute', taEmotOrientering);
+      // iOS och övriga via det vanliga eventet.
+      window.addEventListener('deviceorientation', taEmotOrientering);
+      return true;
+    }
+
+    // Gör en läsbar text av ett orienteringsvärde.
+    function beskrivOrientering(o) {
+      if (!o || o.riktning === null) {
+        return 'Ingen kompassdata.\nHåll telefonen stilla en stund och ta om.';
+      }
+
+      // % 360 så att 360 blir 0.
+      const rikt = Math.round(o.riktning) % 360;
+      let rad1 = 'Riktning: ' + rikt + '°';
+      if (o.noggrannhet !== null) {
+        rad1 += ' (±' + Math.round(o.noggrannhet) + '°)';
+      }
+
+      // beta 90 = upprätt telefon. Avvikelsen därifrån är hur mycket
+      // kameran pekar upp eller ner.
+      let rad2 = 'Lutning: okänd';
+      if (typeof o.beta === 'number') {
+        const upp = Math.round(o.beta - 90);
+        if (upp === 0) {
+          rad2 = 'Lutning: vågrätt';
+        } else {
+          rad2 = 'Lutning: ' + Math.abs(upp) + '° ' + (upp > 0 ? 'upp' : 'ner');
+        }
+      }
+
+      // Varna när kompassen är osäker. Briefen kräver att osäkerheten syns.
+      let rad3 = '';
+      if (o.noggrannhet === null || o.noggrannhet < 0 || o.noggrannhet > 20) {
+        rad3 = '\nKompassen är osäker här. Räkna med en halvtimmes fel i soltid.';
+      }
+
+      return rad1 + '\n' + rad2 + rad3;
+    }
+
 
     function frysBild() {
       // Ingen bild att frysa om videon inte har någon storlek än.
@@ -258,26 +380,49 @@
       // I samma ögonblick som den här raden körs fryses bilden.
       rityta.drawImage(video, 0, 0, canvas.width, canvas.height);
 
+      // Läs av orienteringen i exakt det här ögonblicket och spara den
+      // tillsammans med bilden. Det är den kritiska detaljen: riktningen
+      // ska höra ihop med just den här bildrutan.
+      bild = {
+        canvas: canvas,
+        orientering: orientering,
+        tagen: new Date()
+      };
+
       // Visa canvasen ovanpå videon.
       canvas.hidden = false;
       fryst = true;
+
+      // Visa de avlästa värdena.
+      avlasning.textContent = beskrivOrientering(orientering);
+      avlasning.hidden = false;
+
       status('Bild fryst. Tryck på bilden för att ta om.');
       statusrad.hidden = false;
     }
 
     function atergaTillLive() {
       canvas.hidden = true;
+      avlasning.hidden = true;
       fryst = false;
       statusrad.hidden = true;
     }
 
     // Knappen: frys om vi är live, gå tillbaka om vi redan är frysta.
-    knapp.addEventListener('click', () => {
+    knapp.addEventListener('click', async () => {
       if (fryst) {
         atergaTillLive();
-      } else {
-        frysBild();
+        return;
       }
+
+      // Första gången: starta sensorerna innan vi fryser. På iOS dyker
+      // en lov-ruta upp här. Vi väntar in svaret och fryser sedan ändå,
+      // så första bilden kan sakna kompassdata om du precis tryckt ja.
+      if (!sensorerStartade) {
+        sensorerStartade = await startaSensorer();
+      }
+
+      frysBild();
     });
 
     // Tryck på den frysta bilden för att gå tillbaka till live.
