@@ -109,27 +109,53 @@
       font-size: 13px;
     }
 
-    /* Panel nedtill som visar de avlästa värdena efter en frysning.
-       Ligger ovanför knappen. white-space: pre-line gör att radbrytningar
-       i texten faktiskt bryter rad. */
-    #avlasning {
+    /* Panel nedtill som visas när en bild är fryst. Håller avläsningen
+       och de två reglagen. Ligger ovanför knappen. */
+    #panel {
       position: fixed;
       left: 50%;
       transform: translateX(-50%);
-      bottom: calc(128px + env(safe-area-inset-bottom));
-      max-width: 90vw;
-      padding: 10px 14px;
-      border-radius: 12px;
-      background: rgba(0, 0, 0, 0.6);
+      bottom: calc(120px + env(safe-area-inset-bottom));
+      width: min(92vw, 420px);
+      padding: 12px 16px;
+      border-radius: 14px;
+      background: rgba(0, 0, 0, 0.62);
       color: #fff;
       font-size: 14px;
-      line-height: 1.4;
-      text-align: center;
-      white-space: pre-line;
+      box-sizing: border-box;
     }
 
-    #avlasning[hidden] {
+    #panel[hidden] {
       display: none;
+    }
+
+    /* white-space: pre-line gör att \n i texten faktiskt bryter rad. */
+    #avlasning {
+      text-align: center;
+      line-height: 1.4;
+      white-space: pre-line;
+      margin-bottom: 10px;
+    }
+
+    /* Ett reglage med sin etikett. */
+    .reglage {
+      display: block;
+      margin-top: 8px;
+    }
+
+    .reglage .etikett {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      margin-bottom: 2px;
+    }
+
+    /* Bredare reglage med större greppyta för fingret. */
+    .reglage input[type="range"] {
+      width: 100%;
+      margin: 0;
+      accent-color: #ffb300;
+      height: 28px;
     }
   </style>
 </head>
@@ -149,7 +175,25 @@
   <button id="ta-bild" type="button" aria-label="Ta bild"></button>
 
   <div id="status">Startar kameran…</div>
-  <div id="avlasning" hidden></div>
+
+  <!-- Panelen med avläsning och reglage. Visas bara när en bild är fryst. -->
+  <div id="panel" hidden>
+    <div id="avlasning"></div>
+
+    <label class="reglage">
+      <span class="etikett"><span>Datum</span><span id="datum-text"></span></span>
+      <!-- 0 till 364 = dag på året. Steg 1 = en dag i taget. -->
+      <input type="range" id="datum" min="0" max="364" step="1" value="0">
+    </label>
+
+    <label class="reglage">
+      <span class="etikett"><span>Tid</span><span id="tid-text"></span></span>
+      <!-- 0 till 1439 = minuter efter midnatt. I steg 4 snävas det in
+           till soluppgång–solnedgång. -->
+      <input type="range" id="tid" min="0" max="1439" step="5" value="720">
+    </label>
+  </div>
+
   <div id="fel" hidden></div>
 
   <script>
@@ -262,7 +306,12 @@
 
     const knapp = document.getElementById('ta-bild');
     const canvas = document.getElementById('foto');
+    const panel = document.getElementById('panel');
     const avlasning = document.getElementById('avlasning');
+    const datumReglage = document.getElementById('datum');
+    const tidReglage = document.getElementById('tid');
+    const datumText = document.getElementById('datum-text');
+    const tidText = document.getElementById('tid-text');
     // getContext('2d') ger oss ett ritobjekt. Allt vi ritar på canvasen
     // går genom det.
     const rityta = canvas.getContext('2d');
@@ -367,6 +416,62 @@
     }
 
 
+    // --- 3: reglage för datum och tid ---
+
+    // Vilket år vi räknar i. Skottår hanteras genom att max på reglaget
+    // är 364, alltså 365 dagar, och 29 februari faller bort de flesta år.
+    const arNu = new Date().getFullYear();
+
+    // valtDatum och valdTid är det användaren har ställt in just nu.
+    // I steg 4 är det de här värdena solberäkningen matas med.
+    let valtDatum = new Date();
+    let valdTid = 720;
+    let reglageInit = false;
+
+    // Dagnummer 0–364 till ett riktigt datum.
+    function dagTillDatum(dag) {
+      // new Date(år, 0, 1) är 1 januari. + dag ger rätt dygn.
+      return new Date(arNu, 0, 1 + dag);
+    }
+
+    // Datum till svensk text, t.ex. "14 februari".
+    function formateraDatum(d) {
+      return d.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long' });
+    }
+
+    // Minuter efter midnatt till "13:05".
+    function formateraTid(minuter) {
+      const h = Math.floor(minuter / 60);
+      const m = minuter % 60;
+      // padStart(2, '0') lägger på en nolla så att 5 blir "05".
+      return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+    }
+
+    // Läser av båda reglagen, uppdaterar texten och sparar värdena.
+    function lasAvReglage() {
+      valtDatum = dagTillDatum(Number(datumReglage.value));
+      valdTid = Number(tidReglage.value);
+      datumText.textContent = formateraDatum(valtDatum);
+      tidText.textContent = formateraTid(valdTid);
+      // I steg 4 anropas solberäkningen här.
+    }
+
+    // Ställ reglagen på dagens datum och nuvarande tid första gången.
+    function initReglage() {
+      const idag = new Date();
+      // Millisekunder sedan årsskiftet delat med ett dygn = dagnummer.
+      const dagnummer = Math.floor((idag - new Date(arNu, 0, 1)) / 86400000);
+      datumReglage.value = dagnummer;
+      tidReglage.value = idag.getHours() * 60 + idag.getMinutes();
+      lasAvReglage();
+      reglageInit = true;
+    }
+
+    // input-eventet kommer för varje litet ryck i reglaget medan fingret drar.
+    datumReglage.addEventListener('input', lasAvReglage);
+    tidReglage.addEventListener('input', lasAvReglage);
+
+
     function frysBild() {
       // Ingen bild att frysa om videon inte har någon storlek än.
       if (video.videoWidth === 0) return;
@@ -394,9 +499,10 @@
       canvas.hidden = false;
       fryst = true;
 
-      // Visa de avlästa värdena.
+      // Visa avläsningen och reglagen.
       avlasning.textContent = beskrivOrientering(orientering);
-      avlasning.hidden = false;
+      if (!reglageInit) initReglage();
+      panel.hidden = false;
 
       status('Bild fryst. Tryck på bilden för att ta om.');
       statusrad.hidden = false;
@@ -404,7 +510,7 @@
 
     function atergaTillLive() {
       canvas.hidden = true;
-      avlasning.hidden = true;
+      panel.hidden = true;
       fryst = false;
       statusrad.hidden = true;
     }
