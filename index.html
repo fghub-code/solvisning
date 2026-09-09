@@ -157,6 +157,15 @@
       accent-color: #ffb300;
       height: 28px;
     }
+
+    #sol-text {
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(255, 255, 255, 0.2);
+      text-align: center;
+      line-height: 1.4;
+      white-space: pre-line;
+    }
   </style>
 </head>
 
@@ -192,9 +201,89 @@
            till soluppgång–solnedgång. -->
       <input type="range" id="tid" min="0" max="1439" step="5" value="720">
     </label>
+
+    <!-- Solens läge för valt datum och tid. Uppdateras när du drar. -->
+    <div id="sol-text"></div>
   </div>
 
   <div id="fel" hidden></div>
+
+  <!-- SunCalc, av Vladimir Agafonkin, BSD 2-Clause. Inlagd rakt i filen
+       så att appen är en enda fil och funkar utan nät. Bara sol-delarna,
+       måne borttagen. Källa: github.com/mourner/suncalc -->
+  <script>
+  (function () {
+    'use strict';
+    var PI = Math.PI, sin = Math.sin, cos = Math.cos, tan = Math.tan,
+        asin = Math.asin, atan = Math.atan2, acos = Math.acos, rad = PI / 180;
+    var dayMs = 1000 * 60 * 60 * 24, J1970 = 2440588, J2000 = 2451545;
+
+    function toJulian(date) { return date.valueOf() / dayMs - 0.5 + J1970; }
+    function fromJulian(j) { return new Date((j + 0.5 - J1970) * dayMs); }
+    function toDays(date) { return toJulian(date) - J2000; }
+
+    var e = rad * 23.4397; // jordaxelns lutning
+
+    function rightAscension(l, b) { return atan(sin(l) * cos(e) - tan(b) * sin(e), cos(l)); }
+    function declination(l, b) { return asin(sin(b) * cos(e) + cos(b) * sin(e) * sin(l)); }
+    function azimuth(H, phi, dec) { return atan(sin(H), cos(H) * sin(phi) - tan(dec) * cos(phi)); }
+    function altitude(H, phi, dec) { return asin(sin(phi) * sin(dec) + cos(phi) * cos(dec) * cos(H)); }
+    function siderealTime(d, lw) { return rad * (280.16 + 360.9856235 * d) - lw; }
+
+    function solarMeanAnomaly(d) { return rad * (357.5291 + 0.98560028 * d); }
+    function eclipticLongitude(M) {
+      var C = rad * (1.9148 * sin(M) + 0.02 * sin(2 * M) + 0.0003 * sin(3 * M)),
+          P = rad * 102.9372;
+      return M + C + P + PI;
+    }
+    function sunCoords(d) {
+      var M = solarMeanAnomaly(d), L = eclipticLongitude(M);
+      return { dec: declination(L, 0), ra: rightAscension(L, 0) };
+    }
+
+    var SunCalc = {};
+
+    SunCalc.getPosition = function (date, lat, lng) {
+      var lw = rad * -lng, phi = rad * lat, d = toDays(date),
+          c = sunCoords(d), H = siderealTime(d, lw) - c.ra;
+      return { azimuth: azimuth(H, phi, c.dec), altitude: altitude(H, phi, c.dec) };
+    };
+
+    var times = [[-0.833, 'sunrise', 'sunset']];
+    var J0 = 0.0009;
+
+    function julianCycle(d, lw) { return Math.round(d - J0 - lw / (2 * PI)); }
+    function approxTransit(Ht, lw, n) { return J0 + (Ht + lw) / (2 * PI) + n; }
+    function solarTransitJ(ds, M, L) { return J2000 + ds + 0.0053 * sin(M) - 0.0069 * sin(2 * L); }
+    function hourAngle(h, phi, d) { return acos((sin(h) - sin(phi) * sin(d)) / (cos(phi) * cos(d))); }
+    function getSetJ(h, lw, phi, dec, n, M, L) {
+      var w = hourAngle(h, phi, dec), a = approxTransit(w, lw, n);
+      return solarTransitJ(a, M, L);
+    }
+
+    SunCalc.getTimes = function (date, lat, lng) {
+      var lw = rad * -lng, phi = rad * lat, d = toDays(date),
+          n = julianCycle(d, lw), ds = approxTransit(0, lw, n),
+          M = solarMeanAnomaly(ds), L = eclipticLongitude(M),
+          dec = declination(L, 0), Jnoon = solarTransitJ(ds, M, L),
+          i, len, time, h0, Jset, Jrise;
+
+      var result = { solarNoon: fromJulian(Jnoon), nadir: fromJulian(Jnoon - 0.5) };
+
+      for (i = 0, len = times.length; i < len; i += 1) {
+        time = times[i];
+        h0 = time[0] * rad;
+        Jset = getSetJ(h0, lw, phi, dec, n, M, L);
+        Jrise = Jnoon - (Jset - Jnoon);
+        result[time[1]] = fromJulian(Jrise);
+        result[time[2]] = fromJulian(Jset);
+      }
+      return result;
+    };
+
+    window.SunCalc = SunCalc;
+  })();
+  </script>
 
   <script>
     // Hämta referenser till elementen vi ska jobba med.
@@ -312,6 +401,7 @@
     const tidReglage = document.getElementById('tid');
     const datumText = document.getElementById('datum-text');
     const tidText = document.getElementById('tid-text');
+    const solText = document.getElementById('sol-text');
     // getContext('2d') ger oss ett ritobjekt. Allt vi ritar på canvasen
     // går genom det.
     const rityta = canvas.getContext('2d');
@@ -447,13 +537,24 @@
       return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
     }
 
-    // Läser av båda reglagen, uppdaterar texten och sparar värdena.
+    // Bygger ett Date för valt datum och valt klockslag i lokal tid.
+    function valdTidpunkt() {
+      const d = new Date(valtDatum);
+      d.setHours(Math.floor(valdTid / 60), valdTid % 60, 0, 0);
+      return d;
+    }
+
+    // Läser av båda reglagen, uppdaterar texten och räknar om solen.
     function lasAvReglage() {
       valtDatum = dagTillDatum(Number(datumReglage.value));
       valdTid = Number(tidReglage.value);
+      // När datumet ändras flyttar sig soluppgång och solnedgång, så
+      // reglagets gränser måste räknas om innan vi läser klockslaget.
+      uppdateraSoltider();
+      valdTid = Number(tidReglage.value);
       datumText.textContent = formateraDatum(valtDatum);
       tidText.textContent = formateraTid(valdTid);
-      // I steg 4 anropas solberäkningen här.
+      uppdateraSol();
     }
 
     // Ställ reglagen på dagens datum och nuvarande tid första gången.
@@ -462,6 +563,8 @@
       // Millisekunder sedan årsskiftet delat med ett dygn = dagnummer.
       const dagnummer = Math.floor((idag - new Date(arNu, 0, 1)) / 86400000);
       datumReglage.value = dagnummer;
+      valtDatum = dagTillDatum(dagnummer);
+      uppdateraSoltider();
       tidReglage.value = idag.getHours() * 60 + idag.getMinutes();
       lasAvReglage();
       reglageInit = true;
@@ -470,6 +573,102 @@
     // input-eventet kommer för varje litet ryck i reglaget medan fingret drar.
     datumReglage.addEventListener('input', lasAvReglage);
     tidReglage.addEventListener('input', lasAvReglage);
+
+
+    // --- 4a: position och solens läge ---
+
+    // position sätts när geolokaliseringen svarat. { lat, lng }.
+    let position = null;
+
+    function hamtaPosition() {
+      return new Promise((resolve) => {
+        if (!navigator.geolocation) {
+          status('Ingen geolokalisering i den här webbläsaren.');
+          resolve(null);
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(
+          (p) => {
+            position = { lat: p.coords.latitude, lng: p.coords.longitude };
+            console.log('[solvisning] position:', position);
+            resolve(position);
+          },
+          (err) => {
+            status('Kunde inte hämta position: ' + err.message);
+            resolve(null);
+          },
+          // Fem sekunders tak, och ett par minuter gammal position duger.
+          { timeout: 5000, maximumAge: 120000 }
+        );
+      });
+    }
+
+    // Snävar tidsreglaget till soluppgång–solnedgång för valt datum.
+    // Utan position lämnar vi det på hela dygnet.
+    function uppdateraSoltider() {
+      if (!position) {
+        tidReglage.min = 0;
+        tidReglage.max = 1439;
+        return;
+      }
+
+      const t = SunCalc.getTimes(valdTidpunkt(), position.lat, position.lng);
+      const upp = t.sunrise, ned = t.sunset;
+
+      // Vid midnattssol eller polarnatt blir tiderna ogiltiga (NaN).
+      if (isNaN(upp) || isNaN(ned)) {
+        tidReglage.min = 0;
+        tidReglage.max = 1439;
+        return;
+      }
+
+      const minuterAv = (d) => d.getHours() * 60 + d.getMinutes();
+      tidReglage.min = minuterAv(upp);
+      tidReglage.max = minuterAv(ned);
+
+      // Klämma in nuvarande värde inom de nya gränserna.
+      const v = Number(tidReglage.value);
+      if (v < tidReglage.min) tidReglage.value = tidReglage.min;
+      if (v > tidReglage.max) tidReglage.value = tidReglage.max;
+    }
+
+    // Väderstreck som bokstäver, för läsbarheten.
+    function vaderstreck(grader) {
+      const namn = ['norr', 'nordost', 'öster', 'sydost',
+                    'söder', 'sydväst', 'väster', 'nordväst'];
+      // Dela cirkeln i åtta, avrunda till närmaste.
+      return namn[Math.round(grader / 45) % 8];
+    }
+
+    // Räknar ut solens läge för vald tidpunkt och skriver texten.
+    // Sparas också i sol-variabeln som steg 4b ritar utifrån.
+    let sol = null;
+
+    function uppdateraSol() {
+      if (!position) {
+        solText.textContent = 'Väntar på position…';
+        sol = null;
+        return;
+      }
+
+      const p = SunCalc.getPosition(valdTidpunkt(), position.lat, position.lng);
+      // SunCalc ger radianer. azimut räknas från söder, medurs mot väster.
+      // Vi vill ha kompassgrader från norr, så vi lägger på 180.
+      const azimut = (p.azimuth * 180 / Math.PI + 180 + 360) % 360;
+      const hojd = p.altitude * 180 / Math.PI;
+
+      sol = { azimut: azimut, hojd: hojd };
+
+      if (hojd < 0) {
+        solText.textContent = 'Solen är under horisonten då.\n'
+          + 'Azimut ' + Math.round(azimut) + '°, ' + Math.round(hojd) + '°';
+        return;
+      }
+
+      solText.textContent =
+        'Solen: ' + Math.round(azimut) + '° i ' + vaderstreck(azimut) + '\n'
+        + Math.round(hojd) + '° över horisonten';
+    }
 
 
     function frysBild() {
@@ -522,11 +721,16 @@
         return;
       }
 
-      // Första gången: starta sensorerna innan vi fryser. På iOS dyker
-      // en lov-ruta upp här. Vi väntar in svaret och fryser sedan ändå,
-      // så första bilden kan sakna kompassdata om du precis tryckt ja.
+      // Första gången: starta sensorerna och hämta position innan vi fryser.
+      // På iOS dyker lov-rutor upp här, en för rörelse och en för plats.
+      // Vi väntar in svaren och fryser sedan ändå, så första bilden kan
+      // sakna kompass- eller soldata om du precis tryckt ja.
       if (!sensorerStartade) {
         sensorerStartade = await startaSensorer();
+      }
+      if (!position) {
+        await hamtaPosition();
+        if (reglageInit) lasAvReglage();
       }
 
       frysBild();
