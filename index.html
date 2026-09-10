@@ -1148,6 +1148,43 @@
       return namn[Math.round(grader / 45) % 8];
     }
 
+    // Solens färg och styrka efter höjd över horisonten. Lågt står den
+    // rött och svagt som vid soluppgång, högt ljust gult och starkt.
+    // Varje steg: höjd, skivans färg, glansens färg, glansens styrka.
+    function solFarg(hojd) {
+      const steg = [
+        { h: -1, disc: [255, 122,  70], glans: [255,  95,  60], styrka: 0.26 },
+        { h:  4, disc: [255, 150,  84], glans: [255, 120,  72], styrka: 0.32 },
+        { h: 12, disc: [255, 190, 112], glans: [255, 158,  92], styrka: 0.39 },
+        { h: 25, disc: [255, 222, 154], glans: [255, 196, 128], styrka: 0.46 },
+        { h: 45, disc: [255, 244, 214], glans: [255, 224, 172], styrka: 0.52 }
+      ];
+
+      let a = steg[0], b = steg[0];
+      if (hojd >= steg[steg.length - 1].h) {
+        a = b = steg[steg.length - 1];
+      } else {
+        for (let i = 0; i < steg.length - 1; i++) {
+          if (hojd >= steg[i].h && hojd < steg[i + 1].h) { a = steg[i]; b = steg[i + 1]; break; }
+        }
+      }
+
+      const t = (a === b) ? 0 : (hojd - a.h) / (b.h - a.h);
+      const blanda = (x, y) => Math.round(x + (y - x) * t);
+      const par = (nyckel) => [
+        blanda(a[nyckel][0], b[nyckel][0]),
+        blanda(a[nyckel][1], b[nyckel][1]),
+        blanda(a[nyckel][2], b[nyckel][2])
+      ];
+      return {
+        disc: par('disc'),
+        glans: par('glans'),
+        styrka: a.styrka + (b.styrka - a.styrka) * t
+      };
+    }
+
+    const rgba = (f, a) => 'rgba(' + f[0] + ',' + f[1] + ',' + f[2] + ',' + a + ')';
+
     // Räknar ut solens läge för vald tidpunkt och skriver texten.
     // Sparas också i sol-variabeln som steg 4b ritar utifrån.
     let sol = null;
@@ -1298,6 +1335,9 @@
       // Är punkten innanför skärmen?
       const inne = skarmX >= 0 && skarmX <= sw && skarmY >= 0 && skarmY <= sh;
 
+      // Solens färg och styrka efter hur högt den står.
+      const farg = solFarg(sol.hojd);
+
       visaDebug(
         'canvas ' + cw + 'x' + ch + '  scen ' + sw + 'x' + sh + '\n' +
         'kamera az ' + Math.round(kameraAzimut) + '  lut ' + Math.round(kameraLutning) + '\n' +
@@ -1308,22 +1348,27 @@
         'skarmX ' + Math.round(skarmX) + '  Y ' + Math.round(skarmY) + '  inne:' + (inne ? 'ja' : 'nej'));
 
       if (inne) {
-        // Solen är i bild: rund markör och varm övertoning.
+        // Solen är i bild: rund markör och varm övertoning, färgade
+        // efter solhöjd.
         solpil.hidden = true;
         solHint.textContent = '';
 
         solmarkor.classList.remove('utanfor');
         solmarkor.style.left = skarmX + 'px';
         solmarkor.style.top = skarmY + 'px';
+        solmarkor.style.background = rgba(farg.disc, 0.95);
+        // Glansen runt själva markören växer med styrkan.
+        solmarkor.style.boxShadow = '0 0 ' + Math.round(16 + farg.styrka * 42)
+          + 'px ' + Math.round(4 + farg.styrka * 12) + 'px '
+          + rgba(farg.glans, farg.styrka + 0.25);
         solmarkor.hidden = false;
 
-        const styrka = Math.min(0.5, 0.2 + sol.hojd / 180);
         const xProc = (skarmX / sw) * 100;
         const yProc = (skarmY / sh) * 100;
         solglans.style.background =
           'radial-gradient(circle at ' + xProc.toFixed(1) + '% ' + yProc.toFixed(1) + '%, '
-          + 'rgba(255, 180, 90, ' + styrka.toFixed(2) + '), '
-          + 'rgba(255, 180, 90, 0) 55%)';
+          + rgba(farg.glans, farg.styrka) + ', '
+          + rgba(farg.glans, 0) + ' 55%)';
         solglans.hidden = false;
         return;
       }
@@ -1347,6 +1392,8 @@
       solpil.style.left = px + 'px';
       solpil.style.top = py + 'px';
       solpil.style.transform = 'rotate(' + vinkel + 'rad)';
+      solpil.style.borderLeftColor = rgba(farg.disc, 0.95);
+      solpil.style.filter = 'drop-shadow(0 0 6px ' + rgba(farg.glans, 0.85) + ')';
       solpil.hidden = false;
 
       solHint.textContent = vridRad(dAz, skarmY, sh);
