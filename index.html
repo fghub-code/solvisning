@@ -570,64 +570,85 @@
       to { opacity: 0; }
     }
 
-    /* Himlen bakom. En hel dygnscykel: nästan svart före gryning, ljusnar
-       genom gryningens färger till en ljus middagshimmel, mörknar genom
-       skymningen tillbaka till natt. Alla stopp har samma struktur
-       (0% / 55% / 100%) så webbläsaren tonar mjukt mellan dem. */
-    /* Hela bakgrunden är en enda animerad gradient. Ett radiellt lager är
-       solens glöd som vandrar i en mjuk parabel, ett linjärt lager är
-       himlen som byter färg genom dygnet. Alla stopp har samma struktur
-       så webbläsaren tonar jämnt mellan dem. */
+    /* Himlen: en linjär gradient vars färger byts genom dygnet. Bara
+       färgerna ändras mellan hållpunkterna, så övergången blir jämn. */
     #splash-himmel {
       position: absolute;
       inset: 0;
-      animation: himmel 3.6s linear forwards;
+      animation: himmel-farg 4.2s linear forwards;
     }
 
-    @keyframes himmel {
-      0% { background:
-        radial-gradient(circle at -8% 118%, rgba(255,140,92,0.20) 0%, rgba(255,140,92,0.06) 9%, transparent 26%),
-        linear-gradient(180deg, #090c18 0%, #0c1022 55%, #14182e 100%); }
-      12% { background:
-        radial-gradient(circle at 6% 79%, rgba(255,122,80,0.55) 0%, rgba(255,122,80,0.22) 9%, transparent 26%),
-        linear-gradient(180deg, #141a38 0%, #2a2a52 55%, #6e4258 100%); }
-      25% { background:
-        radial-gradient(circle at 21% 49%, #ff9a55 0%, rgba(255,150,90,0.4) 9%, transparent 26%),
-        linear-gradient(180deg, #2c4d84 0%, #6a7fae 55%, #d38058 100%); }
-      37% { background:
-        radial-gradient(circle at 35% 32%, #ffc57e 0%, rgba(255,205,130,0.45) 9%, transparent 26%),
-        linear-gradient(180deg, #427ab6 0%, #a6cbe8 55%, #ffe6bc 100%); }
-      50% { background:
-        radial-gradient(circle at 50% 26%, #fff6de 0%, rgba(255,244,210,0.5) 9%, transparent 28%),
-        linear-gradient(180deg, #5a97d8 0%, #c3e2f4 55%, #eef6fb 100%); }
-      62% { background:
-        radial-gradient(circle at 64% 32%, #ffbe74 0%, rgba(255,196,120,0.45) 9%, transparent 26%),
-        linear-gradient(180deg, #467ba8 0%, #a9b6d0 55%, #f0b184 100%); }
-      75% { background:
-        radial-gradient(circle at 79% 49%, #ff9550 0%, rgba(255,150,85,0.4) 9%, transparent 26%),
-        linear-gradient(180deg, #35507f 0%, #7a6690 55%, #d8794f 100%); }
-      88% { background:
-        radial-gradient(circle at 93% 79%, rgba(255,118,76,0.55) 0%, rgba(255,118,76,0.22) 9%, transparent 26%),
-        linear-gradient(180deg, #17203f 0%, #3c2f56 55%, #92473c 100%); }
-      100% { background:
-        radial-gradient(circle at 108% 118%, rgba(255,140,92,0.20) 0%, rgba(255,140,92,0.06) 9%, transparent 26%),
-        linear-gradient(180deg, #090c18 0%, #0c1022 55%, #14182e 100%); }
+    @keyframes himmel-farg {
+      0%   { background: linear-gradient(180deg, #090c18 0%, #0c1022 55%, #14182e 100%); }
+      12%  { background: linear-gradient(180deg, #141a38 0%, #2a2a52 55%, #6e4258 100%); }
+      25%  { background: linear-gradient(180deg, #2c4d84 0%, #6a7fae 55%, #d38058 100%); }
+      37%  { background: linear-gradient(180deg, #427ab6 0%, #a6cbe8 55%, #ffe6bc 100%); }
+      50%  { background: linear-gradient(180deg, #5a97d8 0%, #c3e2f4 55%, #eef6fb 100%); }
+      63%  { background: linear-gradient(180deg, #467ba8 0%, #a9b6d0 55%, #f0b184 100%); }
+      76%  { background: linear-gradient(180deg, #35507f 0%, #7a6690 55%, #d8794f 100%); }
+      88%  { background: linear-gradient(180deg, #17203f 0%, #3c2f56 55%, #92473c 100%); }
+      100% { background: linear-gradient(180deg, #090c18 0%, #0c1022 55%, #14182e 100%); }
     }
 
-    /* Glasskivan täcker hela skärmen. En tunn ljus tonad yta med en
-       diagonal reflex, som en glasruta framför himlen. Ingen blur, så
-       inga kakel-artefakter medan gradienten rör sig. */
+    /* Solens glöd: ett eget radiellt lager. background-position animeras,
+       och den är en kontinuerlig längd, så rörelsen blir helt jämn utan
+       hållpunktshack. filter och opacity ger färgskiftet över dygnet. */
+    #splash-glod {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(closest-side circle,
+        #ffe6bc 0%, #ff9a55 30%, rgba(255, 140, 82, 0.30) 55%, transparent 100%);
+      background-repeat: no-repeat;
+      background-size: 150vmin 150vmin;
+      background-position: -20% 130%;
+      animation: sol-bana 4.2s linear forwards,
+                 sol-skift 4.2s ease-in-out forwards;
+    }
+
+    @keyframes sol-bana {
+      0%   { background-position: -22% 132%; }
+      12%  { background-position: 2%   82%; }
+      25%  { background-position: 24%  44%; }
+      37%  { background-position: 40%  22%; }
+      50%  { background-position: 50%  13%; }
+      63%  { background-position: 62%  25%; }
+      75%  { background-position: 80%  48%; }
+      88%  { background-position: 100% 86%; }
+      100% { background-position: 122% 132%; }
+    }
+
+    @keyframes sol-skift {
+      0%, 100% { filter: brightness(0.72) saturate(1.35); opacity: 0.55; }
+      50%      { filter: brightness(1.5) saturate(0.55);  opacity: 0.95; }
+    }
+
+    /* Glasskivan täcker hela skärmen. Liquid glass: lätt frostat, en
+       ljus rimljus-kant, en mjuk hörnreflex och en diagonal glansstrimma. */
     #splash-glas {
       position: absolute;
       inset: 0;
-      background:
-        linear-gradient(122deg, transparent 30%, rgba(255,255,255,0.10) 45%, transparent 58%),
-        rgba(255, 255, 255, 0.05);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22),
-                  inset 0 -90px 130px rgba(0, 0, 0, 0.16);
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.045);
+      -webkit-backdrop-filter: blur(6px) saturate(1.35) brightness(1.03);
+      backdrop-filter: blur(6px) saturate(1.35) brightness(1.03);
+      box-shadow:
+        inset 0 2px 1px rgba(255, 255, 255, 0.4),
+        inset 0 -1px 1px rgba(255, 255, 255, 0.14),
+        inset 0 -120px 160px rgba(0, 0, 0, 0.14);
       display: flex;
       align-items: center;
       justify-content: center;
+    }
+
+    #splash-glas::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(130% 90% at 8% -8%, rgba(255, 255, 255, 0.24), transparent 55%),
+        radial-gradient(120% 80% at 108% 108%, rgba(255, 255, 255, 0.10), transparent 55%),
+        linear-gradient(118deg, transparent 37%, rgba(255, 255, 255, 0.11) 47%, transparent 55%);
     }
 
     #splash-text {
@@ -654,10 +675,10 @@
       -webkit-background-clip: text;
       background-clip: text;
       color: transparent;
-      -webkit-text-stroke: 1px rgba(255, 255, 255, 0.5);
+      -webkit-text-stroke: 1px rgba(255, 255, 255, 0.62);
       text-shadow:
-        0 0 22px rgba(255, 255, 255, 0.35),
-        0 3px 16px rgba(0, 0, 0, 0.4);
+        0 0 26px rgba(255, 255, 255, 0.42),
+        0 3px 16px rgba(0, 0, 0, 0.42);
     }
 
     #splash-namn {
@@ -665,7 +686,7 @@
       font-size: clamp(54px, 17vw, 82px);
       opacity: 0;
       animation: splash-in 0.8s ease 0.35s both,
-                 namn-glans 3.6s linear 0s both;
+                 namn-glans 4.2s linear 0s both;
     }
 
     /* Reflexen sveper från höger till vänster, i takt med solen. */
@@ -693,6 +714,7 @@
 
     @media (prefers-reduced-motion: reduce) {
       #splash-himmel,
+      #splash-glod,
       #splash-namn,
       #splash-text p {
         animation-duration: 0.01s;
@@ -753,6 +775,7 @@
   <!-- Splash. Solen gör en dygnsbåge bakom en glasskiva. -->
   <div id="splash">
     <div id="splash-himmel"></div>
+    <div id="splash-glod"></div>
     <div id="splash-glas">
       <div id="splash-text">
         <h1 id="splash-namn" class="ordmark">Solläge</h1>
@@ -1064,7 +1087,7 @@
     // Splashen tonas bort när animationen är klar, eller om man trycker.
     // Kortare väntan om man valt att dämpa rörelser.
     const dampaRorelse = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    setTimeout(avslutaSplash, dampaRorelse ? 900 : 3800);
+    setTimeout(avslutaSplash, dampaRorelse ? 900 : 4400);
     splash.addEventListener('click', avslutaSplash);
 
 
