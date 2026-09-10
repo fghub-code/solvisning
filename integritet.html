@@ -3,25 +3,25 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#e6e9f0">
+  <meta name="theme-color" content="#1b2450">
   <title>Integritet – Solvisning</title>
 
   <style>
     :root {
-      --yta: #e6e9f0;
-      --ljus: #ffffff;
-      --mork: #bfc6d4;
-      --text: #4b5566;
-      --text-svag: #8a94a7;
-      --accent: #df9440;
-      --inzankt: inset 4px 4px 8px var(--mork), inset -4px -4px 8px var(--ljus);
+      --glas: rgba(255, 255, 255, 0.14);
+      --glas-kant: rgba(255, 255, 255, 0.3);
+      --oskarpa: blur(22px) saturate(150%);
+      --accent: #ffcf7a;
+      --himmel: linear-gradient(200deg, #1b2450 0%, #3a3573 38%, #8a5a8f 66%, #d98a5c 100%);
     }
 
     html, body {
       margin: 0;
       padding: 0;
-      background: var(--yta);
-      color: var(--text);
+      min-height: 100%;
+      background: var(--himmel);
+      background-attachment: fixed;
+      color: #fff;
       font-family: -apple-system, system-ui, sans-serif;
     }
 
@@ -29,38 +29,46 @@
       box-sizing: border-box;
       max-width: 440px;
       margin: 0 auto;
-      padding: calc(40px + env(safe-area-inset-top)) 26px
+      padding: calc(40px + env(safe-area-inset-top)) 24px
                calc(40px + env(safe-area-inset-bottom));
     }
 
     a { color: var(--accent); }
 
     h1 {
-      font-size: 25px;
+      font-size: 26px;
       font-weight: 700;
       margin: 0 0 22px;
+      text-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
     }
 
     h2 {
       font-size: 15px;
-      margin: 24px 0 6px;
+      margin: 22px 0 6px;
       color: var(--accent);
     }
 
     p {
       font-size: 15px;
       line-height: 1.55;
-      color: var(--text-svag);
+      color: rgba(255, 255, 255, 0.82);
       margin: 0 0 12px;
     }
 
-    /* Sammanfattningen i en inzänkt panel. */
+    .lead {
+      text-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Glaskort med detaljerna. */
     .kort {
-      background: var(--yta);
-      box-shadow: var(--inzankt);
-      border-radius: 16px;
-      padding: 4px 18px 14px;
-      margin-top: 8px;
+      background: var(--glas);
+      -webkit-backdrop-filter: var(--oskarpa);
+      backdrop-filter: var(--oskarpa);
+      border: 1px solid var(--glas-kant);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+      border-radius: 20px;
+      padding: 6px 18px 16px;
+      margin-top: 10px;
     }
 
     .tillbaka {
@@ -75,7 +83,7 @@
   <div class="inner">
     <h1>Så hanteras dina uppgifter</h1>
 
-    <p>
+    <p class="lead">
       Solvisning har ingen server och ingen databas. Appen är en enda fil
       som körs i din webbläsare.
     </p>

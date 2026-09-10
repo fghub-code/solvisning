@@ -8,28 +8,38 @@
   <!-- Gör appen installerbar på hemskärmen. -->
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="ikoner/ikon-192.png">
-  <meta name="theme-color" content="#e6e9f0">
+  <meta name="theme-color" content="#1b2450">
   <link rel="apple-touch-icon" href="ikoner/apple-touch-icon.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Solvisning">
 
   <style>
-    /* Neumorphism: allt ligger på en enda ljus yta. Upphöjda ytor har en
-       ljus skugga uppe till vänster och en mörk nere till höger, inzänkta
-       ytor har det omvänt. De här variablerna håller ihop hela stilen. */
+    /* Liquid glass: frostade genomskinliga ytor som flyter ovanpå
+       innehållet. Ljus tunn kant, en dager längst upp, mjuk skugga under.
+       De här variablerna håller ihop stilen. */
     :root {
-      --yta: #e6e9f0;          /* grundfärgen, allt bygger på den */
-      --ljus: #ffffff;         /* skugga mot ljuset */
-      --mork: #bfc6d4;         /* skugga bort från ljuset */
-      --text: #4b5566;
-      --text-svag: #8a94a7;
-      --accent: #df9440;       /* mjuk solorange */
+      --glas: rgba(255, 255, 255, 0.14);
+      --glas-stark: rgba(255, 255, 255, 0.22);
+      --glas-kant: rgba(255, 255, 255, 0.30);
+      --oskarpa: blur(22px) saturate(150%);
+      --skugga: 0 8px 30px rgba(0, 0, 0, 0.22);
+      --dager: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+      --text: #ffffff;
+      --text-svag: rgba(255, 255, 255, 0.72);
+      --accent: #ffcf7a;      /* varm sol */
+      /* Skymningshimmel bakom startsidan, ger glaset något att bryta. */
+      --himmel: linear-gradient(200deg, #1b2450 0%, #3a3573 38%, #8a5a8f 66%, #d98a5c 100%);
+    }
 
-      --upphojd: 6px 6px 13px var(--mork), -6px -6px 13px var(--ljus);
-      --upphojd-s: 3px 3px 7px var(--mork), -3px -3px 7px var(--ljus);
-      --inzankt: inset 4px 4px 8px var(--mork), inset -4px -4px 8px var(--ljus);
-      --inzankt-s: inset 2px 2px 5px var(--mork), inset -2px -2px 5px var(--ljus);
+    /* Frostad glasyta. Läggs som klass på panelerna. */
+    .glas {
+      background: var(--glas);
+      -webkit-backdrop-filter: var(--oskarpa);
+      backdrop-filter: var(--oskarpa);
+      border: 1px solid var(--glas-kant);
+      box-shadow: var(--skugga), var(--dager);
+      color: var(--text);
     }
 
     /* Nollställ marginaler och låt sidan fylla hela skärmen.
@@ -39,7 +49,7 @@
       margin: 0;
       padding: 0;
       height: 100%;
-      background: var(--yta);
+      background: #10131f;
       /* Hindra att sidan går att dra/zooma som en vanlig webbsida.
          Det ska kännas som en app, inte ett dokument. */
       overscroll-behavior: none;
@@ -130,8 +140,8 @@
       display: none;
     }
 
-    /* Avtryckaren. I live-läge en stor rund upphöjd knapp i nederkanten,
-       som en fysisk slutarknapp. ::before är den inzänkta "linsen" i mitten.
+    /* Avtryckaren. I live-läge en stor rund glasknapp i nederkanten.
+       ::before är en tunn inre ring, som en kameralins.
        env(safe-area-inset-bottom) håller den ovanför iPhones hemknappstreck. */
     #ta-bild {
       position: fixed;
@@ -139,13 +149,15 @@
       transform: translateX(-50%);
       bottom: calc(30px + env(safe-area-inset-bottom));
 
-      width: 78px;
-      height: 78px;
-      border: none;
+      width: 76px;
+      height: 76px;
       border-radius: 50%;
-      background: var(--yta);
-      box-shadow: var(--upphojd);
-      color: var(--accent);
+      background: var(--glas-stark);
+      -webkit-backdrop-filter: var(--oskarpa);
+      backdrop-filter: var(--oskarpa);
+      border: 1px solid var(--glas-kant);
+      box-shadow: var(--skugga), var(--dager);
+      color: var(--text);
       font-size: 24px;
       line-height: 1;
       display: flex;
@@ -156,32 +168,34 @@
 
     #ta-bild::before {
       content: "";
-      width: 46px;
-      height: 46px;
+      width: 52px;
+      height: 52px;
       border-radius: 50%;
-      background: var(--yta);
-      box-shadow: var(--inzankt-s);
+      border: 2px solid rgba(255, 255, 255, 0.55);
     }
 
     #ta-bild:active {
-      box-shadow: var(--inzankt);
+      background: var(--glas);
+      transform: translateX(-50%) scale(0.96);
     }
 
     /* När en bild är fryst krymper knappen och flyttar upp till höger
        hörn, utom räckhåll för tummen som drar i reglagen. Klassen
        fryst-lage sätts på body från JS. Då visas ↺-tecknet i stället
-       för linsen. */
+       för ringen. */
     body.fryst-lage #ta-bild {
       left: auto;
       transform: none;
       right: calc(12px + env(safe-area-inset-right));
       top: calc(10px + env(safe-area-inset-top));
       bottom: auto;
-      width: 48px;
-      height: 48px;
-      font-size: 22px;
-      color: var(--text);
-      box-shadow: var(--upphojd-s);
+      width: 46px;
+      height: 46px;
+      font-size: 21px;
+    }
+
+    body.fryst-lage #ta-bild:active {
+      transform: scale(0.96);
     }
 
     body.fryst-lage #ta-bild::before {
@@ -200,7 +214,7 @@
       justify-content: center;
       padding: 24px;
       color: var(--text);
-      background: var(--yta);
+      background: var(--himmel);
       text-align: center;
       line-height: 1.5;
     }
@@ -209,37 +223,32 @@
       display: none;
     }
 
-    /* Liten statusrad högst upp, upphöjd bricka. Visar vad appen gör just
-       nu medan kameran startar, försvinner när bilden är igång. */
+    /* Liten statusrad högst upp, glasbricka. Visar vad appen gör just nu
+       medan kameran startar, försvinner när bilden är igång. */
     #status {
       position: fixed;
       top: calc(12px + env(safe-area-inset-top));
       left: 50%;
       transform: translateX(-50%);
-      padding: 7px 14px;
+      padding: 8px 16px;
       border-radius: 999px;
-      background: var(--yta);
-      box-shadow: var(--upphojd-s);
-      color: var(--text);
       font-size: 13px;
     }
 
-    /* Kompakt inforad högst upp. En upphöjd bricka. Kompassavläsning och
-       solens läge. Visas bara när en bild är fryst. right lämnar plats
-       åt knappen i högra hörnet. */
+    /* Kompakt inforad högst upp, glasbricka. Kompassavläsning och solens
+       läge. Visas bara när en bild är fryst. right lämnar plats åt
+       knappen i högra hörnet. */
     #topinfo {
       position: fixed;
       top: calc(10px + env(safe-area-inset-top));
       left: calc(10px + env(safe-area-inset-left));
-      right: calc(70px + env(safe-area-inset-right));
-      padding: 9px 14px;
-      border-radius: 16px;
-      background: var(--yta);
-      box-shadow: var(--upphojd-s);
-      color: var(--text);
+      right: calc(66px + env(safe-area-inset-right));
+      padding: 10px 15px;
+      border-radius: 18px;
       font-size: 12.5px;
       line-height: 1.4;
       text-align: center;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
     }
 
     #topinfo[hidden] {
@@ -267,18 +276,16 @@
       display: none;
     }
 
-    /* Kontrollbrickan längs nederkanten. En upphöjd ljus yta med rundade
-       övre hörn som håller de två reglagen. Bilden ovanför hålls fri. */
+    /* Kontrollbrickan längs nederkanten. En glasyta med rundade övre hörn
+       som håller de två reglagen. Bilden ovanför hålls fri. */
     #panel {
       position: fixed;
       left: 0;
       right: 0;
       bottom: 0;
-      padding: 14px 22px calc(16px + env(safe-area-inset-bottom));
-      background: var(--yta);
-      border-radius: 26px 26px 0 0;
-      box-shadow: 0 -10px 28px rgba(70, 82, 105, 0.22);
-      color: var(--text);
+      padding: 16px 22px calc(18px + env(safe-area-inset-bottom));
+      border-radius: 28px 28px 0 0;
+      border-bottom: none;
       box-sizing: border-box;
     }
 
@@ -289,7 +296,7 @@
     /* Ett reglage: en etikettrad och själva reglaget. */
     .reglage {
       display: block;
-      margin: 4px 0 10px;
+      margin: 4px 0 12px;
     }
 
     .reglage:last-child {
@@ -301,11 +308,11 @@
       justify-content: space-between;
       font-size: 12px;
       color: var(--text-svag);
-      margin-bottom: 2px;
+      margin-bottom: 3px;
     }
 
-    /* Reglaget: en inzänkt ränna, ifylld del i accentfärg (procenten
-       sätts från JS som --fyllt), och ett upphöjt runt grepp. */
+    /* Reglaget: en genomskinlig glasränna, ifylld del i ljust glas
+       (procenten sätts från JS som --fyllt), och ett runt glasgrepp. */
     .reglage input[type="range"] {
       -webkit-appearance: none;
       appearance: none;
@@ -314,9 +321,10 @@
       margin: 6px 0 0;
       border-radius: 999px;
       background: linear-gradient(to right,
-                  var(--accent) 0 var(--fyllt, 0%),
-                  var(--yta) var(--fyllt, 0%) 100%);
-      box-shadow: var(--inzankt);
+                  rgba(255, 255, 255, 0.55) 0 var(--fyllt, 0%),
+                  rgba(255, 255, 255, 0.12) var(--fyllt, 0%) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.25);
       outline: none;
     }
 
@@ -324,32 +332,35 @@
       -webkit-appearance: none;
       width: 28px;
       height: 28px;
-      margin-top: -6px;   /* (16 − 28) / 2, centrerar greppet på rännan */
+      margin-top: -7px;   /* centrerar greppet på rännan */
       border-radius: 50%;
-      background: var(--yta);
-      box-shadow: 4px 4px 8px var(--mork), -4px -4px 8px var(--ljus);
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
       cursor: pointer;
     }
 
     .reglage input[type="range"]::-moz-range-thumb {
       width: 28px;
       height: 28px;
-      border: none;
+      border: 1px solid rgba(255, 255, 255, 0.6);
       border-radius: 50%;
-      background: var(--yta);
-      box-shadow: 4px 4px 8px var(--mork), -4px -4px 8px var(--ljus);
+      background: rgba(255, 255, 255, 0.9);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
       cursor: pointer;
     }
 
     /* --- Startsidan --- */
 
-    /* Ligger över allt tills man trycker "Starta kameran". */
+    /* Ligger över allt tills man trycker "Starta kameran". Skymningshimmel
+       som bakgrund, så att glaskorten har något att bryta. */
     #start {
       position: fixed;
       inset: 0;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
-      background: var(--yta);
+      background: var(--himmel);
+      background-attachment: fixed;
       color: var(--text);
     }
 
@@ -362,39 +373,41 @@
       min-height: 100%;
       max-width: 440px;
       margin: 0 auto;
-      padding: calc(52px + env(safe-area-inset-top)) 26px
+      padding: calc(52px + env(safe-area-inset-top)) 24px
                calc(28px + env(safe-area-inset-bottom));
       display: flex;
       flex-direction: column;
-      gap: 22px;
+      gap: 20px;
     }
 
     .start-inner h1 {
       margin: 0;
-      font-size: 30px;
+      font-size: 32px;
       font-weight: 700;
       letter-spacing: 0.4px;
-      color: var(--text);
+      text-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
     }
 
     .start-inner .ingress {
       margin: 0;
       font-size: 16px;
       line-height: 1.5;
-      color: var(--text-svag);
+      color: rgba(255, 255, 255, 0.85);
+      text-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
     }
 
-    /* De tre stegen. Varje steg en upphöjd sifferbricka plus text. */
+    /* De tre stegen i ett glaskort. Varje steg en glasbricka med siffra. */
     .steg {
       margin: 0;
-      padding: 0;
+      padding: 18px;
+      border-radius: 20px;
+      list-style: none;
       display: flex;
       flex-direction: column;
       gap: 14px;
     }
 
     .steg li {
-      list-style: none;
       display: flex;
       gap: 14px;
       align-items: flex-start;
@@ -407,8 +420,8 @@
       width: 30px;
       height: 30px;
       border-radius: 50%;
-      background: var(--yta);
-      box-shadow: var(--upphojd-s);
+      background: var(--glas-stark);
+      border: 1px solid var(--glas-kant);
       color: var(--accent);
       font-size: 14px;
       font-weight: 700;
@@ -417,18 +430,15 @@
       justify-content: center;
     }
 
-    /* Det appen inte kan, som briefen kräver att vi säger.
-       En inzänkt panel, "ingraverad" i ytan. */
+    /* Det appen inte kan, som briefen kräver att vi säger. Eget glaskort. */
     .varning {
       display: flex;
       flex-direction: column;
       gap: 10px;
       font-size: 13.5px;
       line-height: 1.5;
-      color: var(--text-svag);
-      background: var(--yta);
-      box-shadow: var(--inzankt);
-      border-radius: 16px;
+      color: rgba(255, 255, 255, 0.82);
+      border-radius: 20px;
       padding: 16px 18px;
     }
 
@@ -436,7 +446,8 @@
       margin: 0;
       font-size: 13px;
       line-height: 1.5;
-      color: var(--text-svag);
+      color: rgba(255, 255, 255, 0.7);
+      text-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
     }
 
     .integritet a {
@@ -447,11 +458,9 @@
       margin: 0;
       font-size: 13px;
       line-height: 1.5;
-      color: var(--text-svag);
-      background: var(--yta);
-      box-shadow: var(--inzankt-s);
-      border-radius: 12px;
-      padding: 12px 14px;
+      color: rgba(255, 255, 255, 0.82);
+      border-radius: 16px;
+      padding: 13px 15px;
     }
 
     .hemskarm[hidden] {
@@ -466,18 +475,21 @@
     #start-knapp {
       margin-top: 4px;
       padding: 18px;
-      border: none;
-      border-radius: 18px;
-      background: var(--yta);
-      box-shadow: var(--upphojd);
-      color: var(--accent);
+      border-radius: 20px;
+      background: var(--glas-stark);
+      -webkit-backdrop-filter: var(--oskarpa);
+      backdrop-filter: var(--oskarpa);
+      border: 1px solid var(--glas-kant);
+      box-shadow: var(--skugga), var(--dager);
+      color: #fff;
       font-size: 17px;
       font-weight: 700;
       cursor: pointer;
     }
 
     #start-knapp:active {
-      box-shadow: var(--inzankt);
+      background: var(--glas);
+      transform: scale(0.98);
     }
 
     /* Liten frågeteckenknapp i live-läge, öppnar startsidan igen. */
@@ -487,11 +499,7 @@
       right: calc(14px + env(safe-area-inset-right));
       width: 36px;
       height: 36px;
-      border: none;
       border-radius: 50%;
-      background: var(--yta);
-      box-shadow: var(--upphojd-s);
-      color: var(--text-svag);
       font-size: 17px;
       font-weight: 700;
       display: flex;
@@ -501,7 +509,7 @@
     }
 
     #hjalp:active {
-      box-shadow: var(--inzankt-s);
+      background: var(--glas);
     }
 
     #hjalp[hidden],
@@ -550,22 +558,22 @@
   <button id="ta-bild" type="button" aria-label="Frys bild"></button>
 
   <!-- Frågetecken uppe till höger i live-läge, öppnar startsidan igen. -->
-  <button id="hjalp" type="button" aria-label="Om appen" hidden>?</button>
+  <button id="hjalp" class="glas" type="button" aria-label="Om appen" hidden>?</button>
 
   <!-- Tillfällig felsökning av solprojektionen. -->
   <div id="debug" hidden></div>
 
-  <div id="status">Startar kameran…</div>
+  <div id="status" class="glas">Startar kameran…</div>
 
   <!-- Kompass och solens läge. Visas bara när en bild är fryst. -->
-  <div id="topinfo" hidden>
+  <div id="topinfo" class="glas" hidden>
     <div id="avlasning"></div>
     <div id="sol-text"></div>
     <div id="sol-hint"></div>
   </div>
 
   <!-- Reglagen längs nederkanten. Visas bara när en bild är fryst. -->
-  <div id="panel" hidden>
+  <div id="panel" class="glas" hidden>
     <label class="reglage">
       <span class="etikett"><span>Datum</span><span id="datum-text"></span></span>
       <!-- 0 till 364 = dag på året. Steg 1 = en dag i taget. -->
@@ -588,13 +596,13 @@
         Ta en bild genom fönstret under visningen och dra i reglagen.
       </p>
 
-      <ul class="steg">
+      <ul class="steg glas">
         <li><span class="nr">1</span><span>Rikta mobilen mot fönstret eller balkongen och håll den stilla.</span></li>
         <li><span class="nr">2</span><span>Tryck på knappen. Bilden fryses och kompassriktningen sparas i samma ögonblick.</span></li>
         <li><span class="nr">3</span><span>Dra i reglagen för datum och tid. En markör visar var solen står, och ett varmt ljus läggs på när den är i bild.</span></li>
       </ul>
 
-      <div class="varning">
+      <div class="varning glas">
         <span>Appen räknar ut var solen står på himlen, inte vad som skymmer den. Ett hus mitt emot, ett balkongtak eller en trädkrona syns i bilden men finns inte i beräkningen.</span>
         <span>Kompassen i en mobil är opålitlig inomhus. Räkna med tio till tjugo graders fel, ungefär en halvtimme i soltid. Appen visar hur säker avläsningen är.</span>
       </div>
@@ -604,7 +612,7 @@
         <a href="integritet.html">Så hanteras dina uppgifter</a>
       </p>
 
-      <p class="hemskarm" hidden>
+      <p class="hemskarm glas" hidden>
         Tips: tryck på dela-knappen nedtill i Safari och välj
         <b>Lägg till på hemskärmen</b>, så får du appen som en ikon som
         startar utan adressfält.
