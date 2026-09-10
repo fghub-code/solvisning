@@ -84,12 +84,24 @@
       display: none;
     }
 
-    /* När solen är utanför bilden visas markören blekare vid kanten. */
-    #solmarkor.utanfor {
-      opacity: 0.45;
-      width: 26px;
-      height: 26px;
-      margin: -13px 0 0 -13px;
+    /* Pil vid kanten som pekar mot solen när den är utanför bild.
+       En triangel gjord av border, pekar åt höger som utgångsläge,
+       roteras från JS. transform-origin i mitten så rotationen blir rätt. */
+    #solpil {
+      position: absolute;
+      width: 0;
+      height: 0;
+      border-left: 16px solid rgba(255, 214, 102, 0.95);
+      border-top: 11px solid transparent;
+      border-bottom: 11px solid transparent;
+      margin: -11px 0 0 -8px;
+      transform-origin: 8px 11px;
+      filter: drop-shadow(0 0 6px rgba(255, 179, 71, 0.85));
+      pointer-events: none;
+    }
+
+    #solpil[hidden] {
+      display: none;
     }
 
     /* Avtryckaren. I live-läge en stor rund knapp i nederkanten.
@@ -199,6 +211,16 @@
 
     #sol-text {
       margin-top: 3px;
+    }
+
+    /* Rådet om hur man vrider när solen är utanför bild. */
+    #sol-hint {
+      margin-top: 3px;
+      color: #ffcf7a;
+    }
+
+    #sol-hint:empty {
+      display: none;
     }
 
     /* Smal list längs nederkanten med de två reglagen. Tar bara den plats
@@ -409,9 +431,10 @@
     <video id="kamera" playsinline muted></video>
     <!-- Den frysta bilden ritas hit. Ligger i samma wrapp som videon. -->
     <canvas id="foto" hidden></canvas>
-    <!-- Varm övertoning och solmarkör, ovanpå den frysta bilden. -->
+    <!-- Varm övertoning, solmarkör och kantpil, ovanpå den frysta bilden. -->
     <div id="solglans" hidden></div>
     <div id="solmarkor" hidden></div>
+    <div id="solpil" hidden></div>
   </div>
 
   <!-- Avtryckaren. Fryser bilden i live-läge, tar en ny bild i fryst läge.
@@ -430,6 +453,7 @@
   <div id="topinfo" hidden>
     <div id="avlasning"></div>
     <div id="sol-text"></div>
+    <div id="sol-hint"></div>
   </div>
 
   <!-- Reglagen längs nederkanten. Visas bara när en bild är fryst. -->
@@ -705,6 +729,8 @@
     const canvas = document.getElementById('foto');
     const solglans = document.getElementById('solglans');
     const solmarkor = document.getElementById('solmarkor');
+    const solpil = document.getElementById('solpil');
+    const solHint = document.getElementById('sol-hint');
     const panel = document.getElementById('panel');
     const topinfo = document.getElementById('topinfo');
     const avlasning = document.getElementById('avlasning');
@@ -1027,16 +1053,35 @@
       debugruta.hidden = false;
     }
 
+    // Döljer allt som hör till solmarkören.
+    function doljSol() {
+      solmarkor.hidden = true;
+      solpil.hidden = true;
+      solglans.hidden = true;
+      solHint.textContent = '';
+    }
+
+    // Text som talar om hur man ska vrida för att få solen i bild.
+    function vridRad(dAz, skarmY, sh) {
+      const delar = [];
+      const a = Math.round(Math.abs(dAz));
+      if (a >= 3) {
+        delar.push('vrid ' + (dAz < 0 ? 'vänster' : 'höger') + ' ' + a + '°');
+      }
+      if (skarmY < 0) delar.push('luta upp');
+      else if (skarmY > sh) delar.push('luta ner');
+      return delar.length ? 'Solen utanför bild, ' + delar.join(', ') : '';
+    }
+
     // Räknar ut var solen hamnar på skärmen och flyttar markören dit.
     // Bygger på den frysta bildens orientering, inte den live.
     function projiceraSol() {
       const o = bild && bild.orientering;
 
       // Utan sol över horisonten, utan riktning eller utan fryst bild:
-      // dölj markör och glans.
+      // inget att rita.
       if (!fryst || !sol || sol.hojd <= 0 || !o || o.riktning === null) {
-        solmarkor.hidden = true;
-        solglans.hidden = true;
+        doljSol();
         if (fryst) {
           visaDebug(
             'ingen markör:\n' +
@@ -1067,26 +1112,18 @@
         ? g.x.toFixed(1) + ',' + g.y.toFixed(1) + ',' + g.z.toFixed(1)
         : 'saknas';
 
-      // Solen bakom kameran: inget att rita.
-      if (Math.abs(dAz) > 89) {
-        solmarkor.hidden = true;
-        solglans.hidden = true;
-        visaDebug(
-          'sol bakom kameran\n' +
-          'kamera az ' + Math.round(kameraAzimut) + '  sol az ' + Math.round(sol.azimut) + '\n' +
-          'dAz ' + dAz.toFixed(0));
-        return;
-      }
-
       // Hålkameramodell. f är brännvidden räknad i canvas-pixlar:
       // hur många pixlar en viss vinkel motsvarar. Räknas ut från att
       // canvasens bredd spänner FOV_HORISONTELL grader.
       const cw = canvas.width, ch = canvas.height;
       const f = (cw / 2) / Math.tan((FOV_HORISONTELL / 2) * grad);
 
-      // Pixelavstånd från bildens mitt, före rollrotation.
-      let ox = f * Math.tan(dAz * grad);
-      let oy = -f * Math.tan(dHojd * grad);   // minus för att y växer nedåt
+      // Pixelavstånd från bildens mitt, före rollrotation. tan skenar iväg
+      // nära 90°, så vi kapar vinkeln som används till pixelmatten.
+      const dAzKapad = Math.max(-85, Math.min(85, dAz));
+      const dHojdKapad = Math.max(-85, Math.min(85, dHojd));
+      let ox = f * Math.tan(dAzKapad * grad);
+      let oy = -f * Math.tan(dHojdKapad * grad);   // minus för att y växer nedåt
 
       // Rollkompensation: rotera punkten runt bildens mitt lika mycket
       // som telefonen lutar i sidled, fast åt andra hållet.
@@ -1118,18 +1155,16 @@
         'canvasX ' + Math.round(canvasX) + '  Y ' + Math.round(canvasY) + '\n' +
         'skarmX ' + Math.round(skarmX) + '  Y ' + Math.round(skarmY) + '  inne:' + (inne ? 'ja' : 'nej'));
 
-      // Placera markören. Utanför skärmen klämmer vi den till kanten och
-      // gör den mindre och blekare.
-      const klamdX = Math.min(sw, Math.max(0, skarmX));
-      const klamdY = Math.min(sh, Math.max(0, skarmY));
-      solmarkor.style.left = (inne ? skarmX : klamdX) + 'px';
-      solmarkor.style.top = (inne ? skarmY : klamdY) + 'px';
-      solmarkor.classList.toggle('utanfor', !inne);
-      solmarkor.hidden = false;
-
-      // Varm övertoning bara när solen faktiskt är i bild. Blir starkare
-      // ju högre solen står.
       if (inne) {
+        // Solen är i bild: rund markör och varm övertoning.
+        solpil.hidden = true;
+        solHint.textContent = '';
+
+        solmarkor.classList.remove('utanfor');
+        solmarkor.style.left = skarmX + 'px';
+        solmarkor.style.top = skarmY + 'px';
+        solmarkor.hidden = false;
+
         const styrka = Math.min(0.5, 0.2 + sol.hojd / 180);
         const xProc = (skarmX / sw) * 100;
         const yProc = (skarmY / sh) * 100;
@@ -1138,9 +1173,31 @@
           + 'rgba(255, 180, 90, ' + styrka.toFixed(2) + '), '
           + 'rgba(255, 180, 90, 0) 55%)';
         solglans.hidden = false;
-      } else {
-        solglans.hidden = true;
+        return;
       }
+
+      // Solen är utanför bild: dölj rund markör och glans, visa en pil
+      // vid kanten som pekar mot solen, plus ett råd om hur man vrider.
+      solmarkor.hidden = true;
+      solglans.hidden = true;
+
+      // Riktningen till solen i skärmplanet, från bildens mitt.
+      // Vi använder vinklarna direkt, det är stabilt även långt utanför bild.
+      let dirx = dAz, diry = -dHojd;
+      const rdx = dirx * Math.cos(r) - diry * Math.sin(r);
+      const rdy = dirx * Math.sin(r) + diry * Math.cos(r);
+      const vinkel = Math.atan2(rdy, rdx);
+
+      // Placera pilen en bit innanför kanten, klämd till scenens ram.
+      const marg = 22;
+      const px = Math.min(sw - marg, Math.max(marg, skarmX));
+      const py = Math.min(sh - marg, Math.max(marg, skarmY));
+      solpil.style.left = px + 'px';
+      solpil.style.top = py + 'px';
+      solpil.style.transform = 'rotate(' + vinkel + 'rad)';
+      solpil.hidden = false;
+
+      solHint.textContent = vridRad(dAz, skarmY, sh);
     }
 
 
@@ -1193,8 +1250,7 @@
       canvas.hidden = true;
       topinfo.hidden = true;
       panel.hidden = true;
-      solmarkor.hidden = true;
-      solglans.hidden = true;
+      doljSol();
       debugruta.hidden = true;
       fryst = false;
       document.body.classList.remove('fryst-lage');
