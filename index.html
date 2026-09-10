@@ -92,24 +92,46 @@
       margin: -13px 0 0 -13px;
     }
 
-    /* Knappen ligger ovanpå videon, centrerad en bit upp från nederkanten.
+    /* Avtryckaren. I live-läge en stor rund knapp i nederkanten.
        env(safe-area-inset-bottom) håller den ovanför iPhones hemknappstreck. */
     #ta-bild {
       position: fixed;
       left: 50%;
       transform: translateX(-50%);
-      bottom: calc(32px + env(safe-area-inset-bottom));
+      bottom: calc(28px + env(safe-area-inset-bottom));
 
       width: 72px;
       height: 72px;
       border-radius: 50%;
       border: 4px solid rgba(255, 255, 255, 0.9);
       background: rgba(255, 255, 255, 0.25);
+      color: #fff;
+      font-size: 26px;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       cursor: pointer;
     }
 
     #ta-bild:active {
       background: rgba(255, 255, 255, 0.5);
+    }
+
+    /* När en bild är fryst krymper knappen och flyttar upp till höger
+       hörn, utom räckhåll för tummen som drar i reglagen. Klassen
+       fryst-lage sätts på body från JS. */
+    body.fryst-lage #ta-bild {
+      left: auto;
+      transform: none;
+      right: calc(12px + env(safe-area-inset-right));
+      top: calc(10px + env(safe-area-inset-top));
+      bottom: auto;
+      width: 46px;
+      height: 46px;
+      border-width: 2px;
+      font-size: 22px;
+      background: rgba(0, 0, 0, 0.45);
     }
 
     /* Ruta för felmeddelanden. Ligger som ett svart lager över allt.
@@ -147,19 +169,49 @@
       font-size: 13px;
     }
 
-    /* Panel nedtill som visas när en bild är fryst. Håller avläsningen
-       och de två reglagen. Ligger ovanför knappen. */
+    /* Kompakt inforad högst upp, under statuspillen. Kompassavläsning
+       och solens läge. Visas bara när en bild är fryst. max-width lämnar
+       plats åt knappen i högra hörnet. */
+    #topinfo {
+      position: fixed;
+      top: calc(10px + env(safe-area-inset-top));
+      /* Ligger mellan vänsterkanten och knappen i högra hörnet. */
+      left: calc(10px + env(safe-area-inset-left));
+      right: calc(68px + env(safe-area-inset-right));
+      padding: 7px 12px;
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.55);
+      color: #fff;
+      font-size: 12.5px;
+      line-height: 1.35;
+      text-align: center;
+    }
+
+    #topinfo[hidden] {
+      display: none;
+    }
+
+    /* white-space: pre-line gör att \n i texten faktiskt bryter rad. */
+    #avlasning,
+    #sol-text {
+      white-space: pre-line;
+    }
+
+    #sol-text {
+      margin-top: 3px;
+    }
+
+    /* Smal list längs nederkanten med de två reglagen. Tar bara den plats
+       reglagen behöver, resten av bilden är fri. Tonad bakgrund så att
+       reglagen syns mot en ljus bild utan att bli en tung ruta. */
     #panel {
       position: fixed;
-      left: 50%;
-      transform: translateX(-50%);
-      bottom: calc(120px + env(safe-area-inset-bottom));
-      width: min(92vw, 420px);
-      padding: 12px 16px;
-      border-radius: 14px;
-      background: rgba(0, 0, 0, 0.62);
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding: 6px 16px calc(8px + env(safe-area-inset-bottom));
+      background: linear-gradient(to top, rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0.28));
       color: #fff;
-      font-size: 14px;
       box-sizing: border-box;
     }
 
@@ -167,42 +219,25 @@
       display: none;
     }
 
-    /* white-space: pre-line gör att \n i texten faktiskt bryter rad. */
-    #avlasning {
-      text-align: center;
-      line-height: 1.4;
-      white-space: pre-line;
-      margin-bottom: 10px;
-    }
-
-    /* Ett reglage med sin etikett. */
+    /* Ett reglage: en tunn etikettrad och själva reglaget. */
     .reglage {
       display: block;
-      margin-top: 8px;
+      margin: 3px 0;
     }
 
     .reglage .etikett {
       display: flex;
       justify-content: space-between;
-      font-size: 13px;
-      margin-bottom: 2px;
+      font-size: 11px;
+      opacity: 0.9;
+      margin-bottom: 1px;
     }
 
-    /* Bredare reglage med större greppyta för fingret. */
     .reglage input[type="range"] {
       width: 100%;
       margin: 0;
       accent-color: #ffb300;
-      height: 28px;
-    }
-
-    #sol-text {
-      margin-top: 10px;
-      padding-top: 8px;
-      border-top: 1px solid rgba(255, 255, 255, 0.2);
-      text-align: center;
-      line-height: 1.4;
-      white-space: pre-line;
+      height: 24px;
     }
   </style>
 </head>
@@ -220,16 +255,20 @@
     <div id="solmarkor" hidden></div>
   </div>
 
-  <!-- Knappen finns men gör inget än. aria-label ger den ett namn för
-       skärmläsare eftersom den inte har någon text. -->
-  <button id="ta-bild" type="button" aria-label="Ta bild"></button>
+  <!-- Avtryckaren. Fryser bilden i live-läge, tar en ny bild i fryst läge.
+       aria-label ger den ett namn för skärmläsare. -->
+  <button id="ta-bild" type="button" aria-label="Frys bild"></button>
 
   <div id="status">Startar kameran…</div>
 
-  <!-- Panelen med avläsning och reglage. Visas bara när en bild är fryst. -->
-  <div id="panel" hidden>
+  <!-- Kompass och solens läge. Visas bara när en bild är fryst. -->
+  <div id="topinfo" hidden>
     <div id="avlasning"></div>
+    <div id="sol-text"></div>
+  </div>
 
+  <!-- Reglagen längs nederkanten. Visas bara när en bild är fryst. -->
+  <div id="panel" hidden>
     <label class="reglage">
       <span class="etikett"><span>Datum</span><span id="datum-text"></span></span>
       <!-- 0 till 364 = dag på året. Steg 1 = en dag i taget. -->
@@ -238,13 +277,9 @@
 
     <label class="reglage">
       <span class="etikett"><span>Tid</span><span id="tid-text"></span></span>
-      <!-- 0 till 1439 = minuter efter midnatt. I steg 4 snävas det in
-           till soluppgång–solnedgång. -->
+      <!-- 0 till 1439 = minuter efter midnatt. Fast skala, hela dygnet. -->
       <input type="range" id="tid" min="0" max="1439" step="5" value="720">
     </label>
-
-    <!-- Solens läge för valt datum och tid. Uppdateras när du drar. -->
-    <div id="sol-text"></div>
   </div>
 
   <div id="fel" hidden></div>
@@ -440,6 +475,7 @@
     const solglans = document.getElementById('solglans');
     const solmarkor = document.getElementById('solmarkor');
     const panel = document.getElementById('panel');
+    const topinfo = document.getElementById('topinfo');
     const avlasning = document.getElementById('avlasning');
     const datumReglage = document.getElementById('datum');
     const tidReglage = document.getElementById('tid');
@@ -547,38 +583,32 @@
       return true;
     }
 
-    // Gör en läsbar text av ett orienteringsvärde.
+    // Gör en kort text av ett orienteringsvärde. En rad, plus en
+    // varningsrad när kompassen är osäker.
     function beskrivOrientering(o) {
       if (!o || o.riktning === null) {
-        return 'Ingen kompassdata.\nHåll telefonen stilla en stund och ta om.';
+        return 'Ingen kompassdata, håll stilla och ta om';
       }
 
       // % 360 så att 360 blir 0.
-      const rikt = Math.round(o.riktning) % 360;
-      let rad1 = 'Riktning: ' + rikt + '°';
-      if (o.noggrannhet !== null) {
-        rad1 += ' (±' + Math.round(o.noggrannhet) + '°)';
-      }
+      let rad = 'Kamera ' + (Math.round(o.riktning) % 360) + '°';
 
       // beta 90 = upprätt telefon. Avvikelsen därifrån är hur mycket
       // kameran pekar upp eller ner.
-      let rad2 = 'Lutning: okänd';
       if (typeof o.beta === 'number') {
         const upp = Math.round(o.beta - 90);
-        if (upp === 0) {
-          rad2 = 'Lutning: vågrätt';
-        } else {
-          rad2 = 'Lutning: ' + Math.abs(upp) + '° ' + (upp > 0 ? 'upp' : 'ner');
-        }
+        rad += upp === 0
+          ? ' · vågrätt'
+          : ' · ' + Math.abs(upp) + '° ' + (upp > 0 ? 'upp' : 'ner');
       }
 
       // Varna när kompassen är osäker. Briefen kräver att osäkerheten syns.
-      let rad3 = '';
       if (o.noggrannhet === null || o.noggrannhet < 0 || o.noggrannhet > 20) {
-        rad3 = '\nKompassen är osäker här. Räkna med en halvtimmes fel i soltid.';
+        const grad = (o.noggrannhet > 0) ? ' (±' + Math.round(o.noggrannhet) + '°)' : '';
+        rad += '\nKompassen osäker' + grad + ', ca en halvtimmes fel i soltid';
       }
 
-      return rad1 + '\n' + rad2 + rad3;
+      return rad;
     }
 
 
@@ -701,10 +731,9 @@
       return 'Sol uppe ' + formateraTid(minuterAv(upp)) + '–' + formateraTid(minuterAv(ned));
     }
 
-    // Väderstreck som bokstäver, för läsbarheten.
+    // Väderstreck som kort bokstavsform: N, NÖ, Ö, SÖ, S, SV, V, NV.
     function vaderstreck(grader) {
-      const namn = ['norr', 'nordost', 'öster', 'sydost',
-                    'söder', 'sydväst', 'väster', 'nordväst'];
+      const namn = ['N', 'NÖ', 'Ö', 'SÖ', 'S', 'SV', 'V', 'NV'];
       // Dela cirkeln i åtta, avrunda till närmaste.
       return namn[Math.round(grader / 45) % 8];
     }
@@ -729,15 +758,16 @@
       sol = { azimut: azimut, hojd: hojd };
 
       const fonster = soltiderText();
-      const rad3 = fonster ? '\n' + fonster : '';
+      const rad2 = fonster ? '\n' + fonster : '';
 
       if (hojd < 0) {
-        solText.textContent = 'Solen är under horisonten då.\n'
-          + 'Azimut ' + Math.round(azimut) + '°, ' + Math.round(hojd) + '°' + rad3;
+        solText.textContent =
+          'Sol nere (' + Math.round(azimut) + '° ' + vaderstreck(azimut)
+          + ', ' + Math.round(hojd) + '°)' + rad2;
       } else {
         solText.textContent =
-          'Solen: ' + Math.round(azimut) + '° i ' + vaderstreck(azimut) + '\n'
-          + Math.round(hojd) + '° över horisonten' + rad3;
+          'Sol ' + Math.round(azimut) + '° ' + vaderstreck(azimut)
+          + ' · ' + Math.round(hojd) + '° upp' + rad2;
       }
 
       projiceraSol();
@@ -886,28 +916,36 @@
       canvas.hidden = false;
       fryst = true;
 
+      // Byt till fryst läge: statuspillen bort, inforad och reglage fram,
+      // knappen krymper till hörnet (klassen på body styr CSS).
+      statusrad.hidden = true;
+      document.body.classList.add('fryst-lage');
+      knapp.textContent = '↺';
+      knapp.setAttribute('aria-label', 'Ta en ny bild');
+
       // Visa avläsningen och reglagen.
       avlasning.textContent = beskrivOrientering(orientering);
       if (!reglageInit) initReglage();
+      topinfo.hidden = false;
       panel.hidden = false;
 
       // Räkna om solens läge mot den här bildens orientering och rita den.
       uppdateraSol();
-
-      status('Bild fryst. Tryck på bilden för att ta om.');
-      statusrad.hidden = false;
     }
 
     function atergaTillLive() {
       canvas.hidden = true;
+      topinfo.hidden = true;
       panel.hidden = true;
       solmarkor.hidden = true;
       solglans.hidden = true;
       fryst = false;
-      statusrad.hidden = true;
+      document.body.classList.remove('fryst-lage');
+      knapp.textContent = '';
+      knapp.setAttribute('aria-label', 'Frys bild');
     }
 
-    // Knappen: frys om vi är live, gå tillbaka om vi redan är frysta.
+    // Knappen: frys om vi är live, ta en ny bild om vi redan är frysta.
     knapp.addEventListener('click', async () => {
       if (fryst) {
         atergaTillLive();
@@ -925,9 +963,6 @@
 
       frysBild();
     });
-
-    // Tryck på den frysta bilden för att gå tillbaka till live.
-    canvas.addEventListener('click', atergaTillLive);
   </script>
 </body>
 </html>
