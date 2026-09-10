@@ -15,8 +15,10 @@ Klart och verifierat på iPhone:
 - Steg 3: reglage för datum och tid
 - Steg 4a: position via geolocation, SunCalc inlagd, solens azimut och höjd visas, tidsreglaget snävt till soluppgång–solnedgång
 - Steg 4b: solmarkör och varm övertoning projiceras in i bilden (hålkameramodell, 65° synfält, rollkompensation)
+- Reglagen flyttade till en smal list i nederkanten, kompass och sol till en kompakt rad högst upp
+- Startsida med guide och `integritet.html`
 
-Kvar: kalibrera synfält och rolltecken mot verkligheten i dagsljus, kort integritetstext i gränssnittet.
+Kvar: kalibrera synfält och rolltecken mot verkligheten i dagsljus.
 
 ## Så startar du lokalt
 

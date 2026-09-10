@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Integritet – Solvisning</title>
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #0f0f10;
+      color: #f2ede4;
+      font-family: -apple-system, system-ui, sans-serif;
+    }
+
+    .inner {
+      box-sizing: border-box;
+      max-width: 440px;
+      margin: 0 auto;
+      padding: calc(40px + env(safe-area-inset-top)) 26px
+               calc(40px + env(safe-area-inset-bottom));
+      background: radial-gradient(circle at 50% 0%,
+                  rgba(255, 179, 71, 0.16), transparent 55%);
+    }
+
+    a { color: #ffcf7a; }
+
+    h1 {
+      font-size: 26px;
+      margin: 0 0 20px;
+    }
+
+    h2 {
+      font-size: 16px;
+      margin: 26px 0 6px;
+      color: #ffcf7a;
+    }
+
+    p {
+      font-size: 15px;
+      line-height: 1.55;
+      color: #d0c8b9;
+      margin: 0 0 12px;
+    }
+
+    .tillbaka {
+      display: inline-block;
+      margin-top: 28px;
+      font-size: 15px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="inner">
+    <h1>Så hanteras dina uppgifter</h1>
+
+    <p>
+      Solvisning har ingen server och ingen databas. Appen är en enda fil
+      som körs i din webbläsare.
+    </p>
+
+    <h2>Vad appen använder</h2>
+    <p>
+      Kamerabilden du fryser, och din ungefärliga position, latitud och
+      longitud. Positionen behövs för att räkna ut var solen står.
+    </p>
+
+    <h2>Vart det tar vägen</h2>
+    <p>
+      Ingenstans. Bilden och positionen stannar i telefonen. Inget laddas
+      upp, inget sparas mellan besök, ingen statistik samlas in. Stänger du
+      fliken är allt borta.
+    </p>
+
+    <h2>Varför det ändå står här</h2>
+    <p>
+      Position räknas som en personuppgift enligt GDPR även när den bara
+      används lokalt i din telefon. Så länge inget lämnar enheten räcker
+      den här sidan och raden i appen. Skulle appen någon gång börja spara
+      något på en server ändras det, och då krävs laglig grund, radering på
+      begäran och en kontaktväg.
+    </p>
+
+    <a class="tillbaka" href="index.html">← Tillbaka till appen</a>
+  </div>
+</body>
+</html>

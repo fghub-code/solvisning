@@ -239,6 +239,145 @@
       accent-color: #ffb300;
       height: 24px;
     }
+
+    /* --- Startsidan --- */
+
+    /* Ligger över allt tills man trycker "Starta kameran". Egen mörk
+       bakgrund så att kameran bakom inte lyser igenom. */
+    #start {
+      position: fixed;
+      inset: 0;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      background: #0f0f10;
+      color: #f2ede4;
+    }
+
+    #start[hidden] {
+      display: none;
+    }
+
+    .start-inner {
+      box-sizing: border-box;
+      min-height: 100%;
+      max-width: 440px;
+      margin: 0 auto;
+      padding: calc(52px + env(safe-area-inset-top)) 26px
+               calc(28px + env(safe-area-inset-bottom));
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+      /* Varm solglöd upptill, samma ljus som appens solmarkör. */
+      background: radial-gradient(circle at 50% 0%,
+                  rgba(255, 179, 71, 0.18), transparent 60%);
+    }
+
+    .start-inner h1 {
+      margin: 0;
+      font-size: 30px;
+      letter-spacing: 0.4px;
+    }
+
+    .start-inner .ingress {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.5;
+      color: #d0c8b9;
+    }
+
+    /* De tre stegen. Varje steg en siffra i en cirkel plus text. */
+    .steg {
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .steg li {
+      list-style: none;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      line-height: 1.45;
+      font-size: 15px;
+    }
+
+    .steg .nr {
+      flex: none;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: rgba(255, 179, 71, 0.18);
+      color: #ffcf7a;
+      font-size: 14px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Det appen inte kan, som briefen kräver att vi säger. */
+    .varning {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 13.5px;
+      line-height: 1.5;
+      color: #b3ab9c;
+      border-left: 2px solid rgba(255, 179, 71, 0.4);
+      padding-left: 12px;
+    }
+
+    .integritet {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.5;
+      color: #a9a293;
+    }
+
+    .integritet a {
+      color: #ffcf7a;
+    }
+
+    #start-knapp {
+      margin-top: 2px;
+      padding: 16px;
+      border: none;
+      border-radius: 14px;
+      background: #ffb300;
+      color: #1c1400;
+      font-size: 17px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    #start-knapp:active {
+      background: #e6a100;
+    }
+
+    /* Liten frågeteckenknapp i live-läge, öppnar startsidan igen. */
+    #hjalp {
+      position: fixed;
+      top: calc(12px + env(safe-area-inset-top));
+      right: calc(14px + env(safe-area-inset-right));
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      background: rgba(0, 0, 0, 0.35);
+      color: #fff;
+      font-size: 17px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    #hjalp[hidden],
+    body.fryst-lage #hjalp {
+      display: none;
+    }
   </style>
 </head>
 
@@ -258,6 +397,9 @@
   <!-- Avtryckaren. Fryser bilden i live-läge, tar en ny bild i fryst läge.
        aria-label ger den ett namn för skärmläsare. -->
   <button id="ta-bild" type="button" aria-label="Frys bild"></button>
+
+  <!-- Frågetecken uppe till höger i live-läge, öppnar startsidan igen. -->
+  <button id="hjalp" type="button" aria-label="Om appen" hidden>?</button>
 
   <div id="status">Startar kameran…</div>
 
@@ -280,6 +422,35 @@
       <!-- 0 till 1439 = minuter efter midnatt. Fast skala, hela dygnet. -->
       <input type="range" id="tid" min="0" max="1439" step="5" value="720">
     </label>
+  </div>
+
+  <!-- Startsidan. Visas första gången, sen bakom frågeteckenknappen. -->
+  <div id="start">
+    <div class="start-inner">
+      <h1>Solvisning</h1>
+      <p class="ingress">
+        Se var solen står i en lägenhet, vilken dag och tid på året som helst.
+        Ta en bild genom fönstret under visningen och dra i reglagen.
+      </p>
+
+      <ul class="steg">
+        <li><span class="nr">1</span><span>Rikta mobilen mot fönstret eller balkongen och håll den stilla.</span></li>
+        <li><span class="nr">2</span><span>Tryck på knappen. Bilden fryses och kompassriktningen sparas i samma ögonblick.</span></li>
+        <li><span class="nr">3</span><span>Dra i reglagen för datum och tid. En markör visar var solen står, och ett varmt ljus läggs på när den är i bild.</span></li>
+      </ul>
+
+      <div class="varning">
+        <span>Appen räknar ut var solen står på himlen, inte vad som skymmer den. Ett hus mitt emot, ett balkongtak eller en trädkrona syns i bilden men finns inte i beräkningen.</span>
+        <span>Kompassen i en mobil är opålitlig inomhus. Räkna med tio till tjugo graders fel, ungefär en halvtimme i soltid. Appen visar hur säker avläsningen är.</span>
+      </div>
+
+      <p class="integritet">
+        Bild och position stannar i telefonen och skickas ingenstans.
+        <a href="integritet.html">Så hanteras dina uppgifter</a>
+      </p>
+
+      <button id="start-knapp" type="button">Starta kameran</button>
+    </div>
   </div>
 
   <div id="fel" hidden></div>
@@ -464,7 +635,44 @@
       }
     }
 
-    startaKamera();
+    // --- Startsidan ---
+
+    const startskarm = document.getElementById('start');
+    const startKnapp = document.getElementById('start-knapp');
+    const hjalpKnapp = document.getElementById('hjalp');
+    const SETT_NYCKEL = 'solvisning-sett-start';
+
+    let kameraStartad = false;
+
+    function startaOmInteRedan() {
+      if (kameraStartad) return;
+      kameraStartad = true;
+      startaKamera();
+    }
+
+    function doljStart() {
+      startskarm.hidden = true;
+      hjalpKnapp.hidden = false;
+      // localStorage kan kasta i privat läge, därför try/catch.
+      try { localStorage.setItem(SETT_NYCKEL, '1'); } catch (e) {}
+      // Kameran startas först här, så att lov-rutan inte dyker upp
+      // medan man läser guiden.
+      startaOmInteRedan();
+    }
+
+    // Har man sett startsidan förut? Då hoppar vi rakt in i kameran.
+    let harSett = false;
+    try { harSett = localStorage.getItem(SETT_NYCKEL) === '1'; } catch (e) {}
+
+    if (harSett) {
+      startskarm.hidden = true;
+      hjalpKnapp.hidden = false;
+      startaOmInteRedan();
+    }
+
+    startKnapp.addEventListener('click', doljStart);
+    // Frågetecknet visar startsidan igen. Kameran rör vi inte.
+    hjalpKnapp.addEventListener('click', () => { startskarm.hidden = false; });
 
 
     // --- 2a: frysa bilden ---
