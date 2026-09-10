@@ -378,6 +378,26 @@
     body.fryst-lage #hjalp {
       display: none;
     }
+
+    /* Tillfällig felsökningsruta för solprojektionen. Tas bort när
+       markören är kalibrerad. */
+    #debug {
+      position: fixed;
+      left: 8px;
+      bottom: calc(96px + env(safe-area-inset-bottom));
+      max-width: 60vw;
+      padding: 5px 7px;
+      border-radius: 6px;
+      background: rgba(0, 0, 0, 0.62);
+      color: #9de89d;
+      font: 10.5px/1.35 ui-monospace, Menlo, monospace;
+      white-space: pre;
+      pointer-events: none;
+    }
+
+    #debug[hidden] {
+      display: none;
+    }
   </style>
 </head>
 
@@ -400,6 +420,9 @@
 
   <!-- Frågetecken uppe till höger i live-läge, öppnar startsidan igen. -->
   <button id="hjalp" type="button" aria-label="Om appen" hidden>?</button>
+
+  <!-- Tillfällig felsökning av solprojektionen. -->
+  <div id="debug" hidden></div>
 
   <div id="status">Startar kameran…</div>
 
@@ -690,6 +713,7 @@
     const datumText = document.getElementById('datum-text');
     const tidText = document.getElementById('tid-text');
     const solText = document.getElementById('sol-text');
+    const debugruta = document.getElementById('debug');
     // getContext('2d') ger oss ett ritobjekt. Allt vi ritar på canvasen
     // går genom det.
     const rityta = canvas.getContext('2d');
@@ -997,6 +1021,12 @@
       return ((g + 540) % 360) - 180;
     }
 
+    // Skriver felsökningsrutan. Tas bort när markören är kalibrerad.
+    function visaDebug(rader) {
+      debugruta.textContent = rader;
+      debugruta.hidden = false;
+    }
+
     // Räknar ut var solen hamnar på skärmen och flyttar markören dit.
     // Bygger på den frysta bildens orientering, inte den live.
     function projiceraSol() {
@@ -1007,6 +1037,14 @@
       if (!fryst || !sol || sol.hojd <= 0 || !o || o.riktning === null) {
         solmarkor.hidden = true;
         solglans.hidden = true;
+        if (fryst) {
+          visaDebug(
+            'ingen markör:\n' +
+            (!sol ? 'sol saknas' :
+             sol.hojd <= 0 ? 'sol under horisont (' + sol.hojd.toFixed(0) + '°)' :
+             !o ? 'orientering saknas' :
+             o.riktning === null ? 'kompassriktning saknas' : '?'));
+        }
         return;
       }
 
@@ -1024,10 +1062,19 @@
       const dAz = normaliseraGrader(sol.azimut - kameraAzimut);
       const dHojd = sol.hojd - kameraLutning;
 
+      const g = bild.gravitation;
+      const gravText = g
+        ? g.x.toFixed(1) + ',' + g.y.toFixed(1) + ',' + g.z.toFixed(1)
+        : 'saknas';
+
       // Solen bakom kameran: inget att rita.
       if (Math.abs(dAz) > 89) {
         solmarkor.hidden = true;
         solglans.hidden = true;
+        visaDebug(
+          'sol bakom kameran\n' +
+          'kamera az ' + Math.round(kameraAzimut) + '  sol az ' + Math.round(sol.azimut) + '\n' +
+          'dAz ' + dAz.toFixed(0));
         return;
       }
 
@@ -1051,14 +1098,6 @@
       const canvasX = cw / 2 + rx;
       const canvasY = ch / 2 + ry;
 
-      console.log('[solvisning] projektion',
-        'canvas', cw + 'x' + ch,
-        'dAz', dAz.toFixed(1), 'dHöjd', dHojd.toFixed(1),
-        'roll', roll.toFixed(1),
-        'grav', bild.gravitation
-          ? bild.gravitation.x.toFixed(1) + ',' + bild.gravitation.y.toFixed(1) + ',' + bild.gravitation.z.toFixed(1)
-          : 'saknas');
-
       // Canvasen visas med object-fit: cover i scenen. Räkna om samma
       // skalning och centrering som webbläsaren gör, så att punkten
       // hamnar rätt på skärmen.
@@ -1069,6 +1108,15 @@
 
       // Är punkten innanför skärmen?
       const inne = skarmX >= 0 && skarmX <= sw && skarmY >= 0 && skarmY <= sh;
+
+      visaDebug(
+        'canvas ' + cw + 'x' + ch + '  scen ' + sw + 'x' + sh + '\n' +
+        'kamera az ' + Math.round(kameraAzimut) + '  lut ' + Math.round(kameraLutning) + '\n' +
+        'sol az ' + Math.round(sol.azimut) + '  hojd ' + Math.round(sol.hojd) + '\n' +
+        'dAz ' + dAz.toFixed(1) + '  dHojd ' + dHojd.toFixed(1) + '\n' +
+        'roll ' + roll.toFixed(1) + '  grav ' + gravText + '\n' +
+        'canvasX ' + Math.round(canvasX) + '  Y ' + Math.round(canvasY) + '\n' +
+        'skarmX ' + Math.round(skarmX) + '  Y ' + Math.round(skarmY) + '  inne:' + (inne ? 'ja' : 'nej'));
 
       // Placera markören. Utanför skärmen klämmer vi den till kanten och
       // gör den mindre och blekare.
@@ -1147,6 +1195,7 @@
       panel.hidden = true;
       solmarkor.hidden = true;
       solglans.hidden = true;
+      debugruta.hidden = true;
       fryst = false;
       document.body.classList.remove('fryst-lage');
       knapp.textContent = '';
