@@ -17,8 +17,12 @@ Klart och verifierat på iPhone:
 - Steg 4b: solmarkör och varm övertoning projiceras in i bilden (hålkameramodell, 65° synfält, rollkompensation)
 - Reglagen flyttade till en smal list i nederkanten, kompass och sol till en kompakt rad högst upp
 - Startsida med guide och `integritet.html`
+- Kantpil och vrid-råd när solen är utanför bild
+- Installerbar som PWA: `manifest.json`, `sw.js`, ikoner i `ikoner/`
 
-Kvar: kalibrera synfält och rolltecken mot verkligheten i dagsljus.
+Kompassen verifierad mot iPhones kompassapp (2° skillnad).
+
+Kvar: kalibrera synfält (`FOV_HORISONTELL`) och rolltecken mot verkligheten i dagsljus, ta bort felsökningsrutan.
 
 ## Så startar du lokalt
 

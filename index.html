@@ -5,6 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Solvisning</title>
 
+  <!-- Gör appen installerbar på hemskärmen. -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="ikoner/ikon-192.png">
+  <meta name="theme-color" content="#0f0f10">
+  <link rel="apple-touch-icon" href="ikoner/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Solvisning">
+
   <style>
     /* Nollställ marginaler och låt sidan fylla hela skärmen.
        height: 100% på html och body behövs för att video-elementet
@@ -362,6 +371,25 @@
       color: #ffcf7a;
     }
 
+    .hemskarm {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.5;
+      color: #cfc7b8;
+      background: rgba(255, 179, 71, 0.12);
+      border-radius: 10px;
+      padding: 10px 12px;
+    }
+
+    .hemskarm[hidden] {
+      display: none;
+    }
+
+    .hemskarm b {
+      color: #ffcf7a;
+      font-weight: 600;
+    }
+
     #start-knapp {
       margin-top: 2px;
       padding: 16px;
@@ -494,6 +522,12 @@
       <p class="integritet">
         Bild och position stannar i telefonen och skickas ingenstans.
         <a href="integritet.html">Så hanteras dina uppgifter</a>
+      </p>
+
+      <p class="hemskarm" hidden>
+        Tips: tryck på dela-knappen nedtill i Safari och välj
+        <b>Lägg till på hemskärmen</b>, så får du appen som en ikon som
+        startar utan adressfält.
       </p>
 
       <button id="start-knapp" type="button">Starta kameran</button>
@@ -682,12 +716,32 @@
       }
     }
 
+    // --- PWA: registrera service worker ---
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+          .catch((e) => console.warn('[solvisning] service worker:', e));
+      });
+    }
+
+
     // --- Startsidan ---
 
     const startskarm = document.getElementById('start');
     const startKnapp = document.getElementById('start-knapp');
     const hjalpKnapp = document.getElementById('hjalp');
     const SETT_NYCKEL = 'solvisning-sett-start';
+
+    // iPhone-Safari som inte redan kör appen från hemskärmen: visa tipset
+    // om "Lägg till på hemskärmen", som annars är svårt att hitta.
+    const iOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    const staende = navigator.standalone === true ||
+      window.matchMedia('(display-mode: standalone)').matches;
+    if (iOS && !staende) {
+      const tips = document.querySelector('.hemskarm');
+      if (tips) tips.hidden = false;
+    }
 
     let kameraStartad = false;
 
