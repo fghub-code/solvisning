@@ -574,6 +574,10 @@
        genom gryningens färger till en ljus middagshimmel, mörknar genom
        skymningen tillbaka till natt. Alla stopp har samma struktur
        (0% / 55% / 100%) så webbläsaren tonar mjukt mellan dem. */
+    /* Hela bakgrunden är en enda animerad gradient. Ett radiellt lager är
+       solens glöd som vandrar i en mjuk parabel, ett linjärt lager är
+       himlen som byter färg genom dygnet. Alla stopp har samma struktur
+       så webbläsaren tonar jämnt mellan dem. */
     #splash-himmel {
       position: absolute;
       inset: 0;
@@ -581,67 +585,46 @@
     }
 
     @keyframes himmel {
-      0%   { background: linear-gradient(180deg, #090c18 0%, #0c1022 55%, #14182e 100%); }
-      12%  { background: linear-gradient(180deg, #141a38 0%, #2a2a52 55%, #6e4258 100%); }
-      24%  { background: linear-gradient(180deg, #2c4d84 0%, #6a7fae 55%, #d38058 100%); }
-      37%  { background: linear-gradient(180deg, #427ab6 0%, #a6cbe8 55%, #ffe6bc 100%); }
-      50%  { background: linear-gradient(180deg, #5a97d8 0%, #c3e2f4 55%, #eef6fb 100%); }
-      63%  { background: linear-gradient(180deg, #467ba8 0%, #a9b6d0 55%, #f0b184 100%); }
-      76%  { background: linear-gradient(180deg, #35507f 0%, #7a6690 55%, #d8794f 100%); }
-      88%  { background: linear-gradient(180deg, #17203f 0%, #3c2f56 55%, #92473c 100%); }
-      100% { background: linear-gradient(180deg, #090c18 0%, #0c1022 55%, #14182e 100%); }
+      0% { background:
+        radial-gradient(circle at -8% 118%, rgba(255,140,92,0.20) 0%, rgba(255,140,92,0.06) 9%, transparent 26%),
+        linear-gradient(180deg, #090c18 0%, #0c1022 55%, #14182e 100%); }
+      12% { background:
+        radial-gradient(circle at 6% 79%, rgba(255,122,80,0.55) 0%, rgba(255,122,80,0.22) 9%, transparent 26%),
+        linear-gradient(180deg, #141a38 0%, #2a2a52 55%, #6e4258 100%); }
+      25% { background:
+        radial-gradient(circle at 21% 49%, #ff9a55 0%, rgba(255,150,90,0.4) 9%, transparent 26%),
+        linear-gradient(180deg, #2c4d84 0%, #6a7fae 55%, #d38058 100%); }
+      37% { background:
+        radial-gradient(circle at 35% 32%, #ffc57e 0%, rgba(255,205,130,0.45) 9%, transparent 26%),
+        linear-gradient(180deg, #427ab6 0%, #a6cbe8 55%, #ffe6bc 100%); }
+      50% { background:
+        radial-gradient(circle at 50% 26%, #fff6de 0%, rgba(255,244,210,0.5) 9%, transparent 28%),
+        linear-gradient(180deg, #5a97d8 0%, #c3e2f4 55%, #eef6fb 100%); }
+      62% { background:
+        radial-gradient(circle at 64% 32%, #ffbe74 0%, rgba(255,196,120,0.45) 9%, transparent 26%),
+        linear-gradient(180deg, #467ba8 0%, #a9b6d0 55%, #f0b184 100%); }
+      75% { background:
+        radial-gradient(circle at 79% 49%, #ff9550 0%, rgba(255,150,85,0.4) 9%, transparent 26%),
+        linear-gradient(180deg, #35507f 0%, #7a6690 55%, #d8794f 100%); }
+      88% { background:
+        radial-gradient(circle at 93% 79%, rgba(255,118,76,0.55) 0%, rgba(255,118,76,0.22) 9%, transparent 26%),
+        linear-gradient(180deg, #17203f 0%, #3c2f56 55%, #92473c 100%); }
+      100% { background:
+        radial-gradient(circle at 108% 118%, rgba(255,140,92,0.20) 0%, rgba(255,140,92,0.06) 9%, transparent 26%),
+        linear-gradient(180deg, #090c18 0%, #0c1022 55%, #14182e 100%); }
     }
 
-    /* Solen följer en mjuk parabel: upp från nedre vänstra hörnet, högst
-       upp mitt på skärmen, ner mot nedre högra. Många täta hållpunkter
-       plus linjär takt ger en helt jämn rörelse. */
-    #splash-sol {
-      position: absolute;
-      width: 128px;
-      height: 128px;
-      margin: -64px 0 0 -64px;
-      border-radius: 50%;
-      animation: sol-bana 3.6s linear forwards,
-                 sol-glod 3.6s linear forwards;
-    }
-
-    @keyframes sol-bana {
-      0%   { left: -10%; top: 120.0%; }
-      10%  { left: 2%;   top: 86.9%; }
-      20%  { left: 14%;  top: 61.1%; }
-      30%  { left: 26%;  top: 42.7%; }
-      40%  { left: 38%;  top: 31.7%; }
-      50%  { left: 50%;  top: 28.0%; }
-      60%  { left: 62%;  top: 31.7%; }
-      70%  { left: 74%;  top: 42.7%; }
-      80%  { left: 86%;  top: 61.1%; }
-      90%  { left: 98%;  top: 86.9%; }
-      100% { left: 110%; top: 120.0%; }
-    }
-
-    @keyframes sol-glod {
-      0%, 100% {
-        background: radial-gradient(circle at 50% 45%, #ffb173 0%, #db4f2b 72%);
-        box-shadow: 0 0 44px 10px rgba(219, 79, 43, 0.5);
-        transform: scale(0.8);
-      }
-      50% {
-        background: radial-gradient(circle at 50% 42%, #fff6e2 0%, #ffd48a 72%);
-        box-shadow: 0 0 110px 40px rgba(255, 220, 158, 0.6);
-        transform: scale(1);
-      }
-    }
-
-    /* Glasskivan täcker hela skärmen. Frostad, så solen och himlen syns
-       som genom ett immigt fönster. Namnet står på glaset. */
+    /* Glasskivan täcker hela skärmen. En tunn ljus tonad yta med en
+       diagonal reflex, som en glasruta framför himlen. Ingen blur, så
+       inga kakel-artefakter medan gradienten rör sig. */
     #splash-glas {
       position: absolute;
       inset: 0;
-      background: rgba(255, 255, 255, 0.06);
-      -webkit-backdrop-filter: blur(13px) saturate(130%);
-      backdrop-filter: blur(13px) saturate(130%);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25),
-                  inset 0 -80px 120px rgba(0, 0, 0, 0.18);
+      background:
+        linear-gradient(122deg, transparent 30%, rgba(255,255,255,0.10) 45%, transparent 58%),
+        rgba(255, 255, 255, 0.05);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22),
+                  inset 0 -90px 130px rgba(0, 0, 0, 0.16);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -710,7 +693,6 @@
 
     @media (prefers-reduced-motion: reduce) {
       #splash-himmel,
-      #splash-sol,
       #splash-namn,
       #splash-text p {
         animation-duration: 0.01s;
@@ -771,7 +753,6 @@
   <!-- Splash. Solen gör en dygnsbåge bakom en glasskiva. -->
   <div id="splash">
     <div id="splash-himmel"></div>
-    <div id="splash-sol"></div>
     <div id="splash-glas">
       <div id="splash-text">
         <h1 id="splash-namn" class="ordmark">Solläge</h1>

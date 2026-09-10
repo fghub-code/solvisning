@@ -1,6 +1,6 @@
 // Service worker för Solvisning. Cachar appens filer så att den startar
 // utan nät. Höj versionen i CACHE när något ska tvinga fram en ny cache.
-const CACHE = 'solvisning-v6';
+const CACHE = 'solvisning-v7';
 
 const FILER = [
   './',
