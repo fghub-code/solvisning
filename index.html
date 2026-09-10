@@ -582,36 +582,41 @@
 
     @keyframes himmel {
       0%   { background: linear-gradient(180deg, #090c18 0%, #0c1022 55%, #14182e 100%); }
-      16%  { background: linear-gradient(180deg, #1a2145 0%, #3a3560 55%, #b56048 100%); }
-      33%  { background: linear-gradient(180deg, #3f74b0 0%, #9ec6e6 55%, #ffe0b0 100%); }
-      50%  { background: linear-gradient(180deg, #5a97d8 0%, #bfe0f4 55%, #eef5fa 100%); }
-      67%  { background: linear-gradient(180deg, #40699a 0%, #ba8fae 55%, #e88f56 100%); }
-      84%  { background: linear-gradient(180deg, #1a2244 0%, #4e3763 55%, #b6543a 100%); }
+      12%  { background: linear-gradient(180deg, #141a38 0%, #2a2a52 55%, #6e4258 100%); }
+      24%  { background: linear-gradient(180deg, #2c4d84 0%, #6a7fae 55%, #d38058 100%); }
+      37%  { background: linear-gradient(180deg, #427ab6 0%, #a6cbe8 55%, #ffe6bc 100%); }
+      50%  { background: linear-gradient(180deg, #5a97d8 0%, #c3e2f4 55%, #eef6fb 100%); }
+      63%  { background: linear-gradient(180deg, #467ba8 0%, #a9b6d0 55%, #f0b184 100%); }
+      76%  { background: linear-gradient(180deg, #35507f 0%, #7a6690 55%, #d8794f 100%); }
+      88%  { background: linear-gradient(180deg, #17203f 0%, #3c2f56 55%, #92473c 100%); }
       100% { background: linear-gradient(180deg, #090c18 0%, #0c1022 55%, #14182e 100%); }
     }
 
-    /* Solen följer en mjuk, vid båge: upp från nedre vänstra hörnet,
-       högst upp mitt på skärmen, ner mot nedre högra. left/top i procent
-       ritar banan. Färg och glöd ändras: rött och dovt vid horisonten,
-       ljust och starkt högt uppe. */
+    /* Solen följer en mjuk parabel: upp från nedre vänstra hörnet, högst
+       upp mitt på skärmen, ner mot nedre högra. Många täta hållpunkter
+       plus linjär takt ger en helt jämn rörelse. */
     #splash-sol {
       position: absolute;
       width: 128px;
       height: 128px;
       margin: -64px 0 0 -64px;
       border-radius: 50%;
-      animation: sol-bana 3.6s cubic-bezier(0.36, 0, 0.64, 1) forwards,
+      animation: sol-bana 3.6s linear forwards,
                  sol-glod 3.6s linear forwards;
     }
 
     @keyframes sol-bana {
-      0%   { left: -10%; top: 118%; }
-      15%  { left: 4%;   top: 84%; }
-      30%  { left: 22%;  top: 52%; }
-      50%  { left: 50%;  top: 30%; }
-      70%  { left: 78%;  top: 52%; }
-      85%  { left: 96%;  top: 84%; }
-      100% { left: 110%; top: 118%; }
+      0%   { left: -10%; top: 120.0%; }
+      10%  { left: 2%;   top: 86.9%; }
+      20%  { left: 14%;  top: 61.1%; }
+      30%  { left: 26%;  top: 42.7%; }
+      40%  { left: 38%;  top: 31.7%; }
+      50%  { left: 50%;  top: 28.0%; }
+      60%  { left: 62%;  top: 31.7%; }
+      70%  { left: 74%;  top: 42.7%; }
+      80%  { left: 86%;  top: 61.1%; }
+      90%  { left: 98%;  top: 86.9%; }
+      100% { left: 110%; top: 120.0%; }
     }
 
     @keyframes sol-glod {
@@ -627,17 +632,16 @@
       }
     }
 
-    /* Glasskivan framför. Frostad, så solen suddas när den passerar bakom,
-       men syns skarp i kanterna runt om. Namnet står på glaset. */
+    /* Glasskivan täcker hela skärmen. Frostad, så solen och himlen syns
+       som genom ett immigt fönster. Namnet står på glaset. */
     #splash-glas {
       position: absolute;
-      inset: 9vh 6vw;
-      border-radius: 34px;
-      background: rgba(255, 255, 255, 0.12);
-      -webkit-backdrop-filter: blur(16px) saturate(140%);
-      backdrop-filter: blur(16px) saturate(140%);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+      inset: 0;
+      background: rgba(255, 255, 255, 0.06);
+      -webkit-backdrop-filter: blur(13px) saturate(130%);
+      backdrop-filter: blur(13px) saturate(130%);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25),
+                  inset 0 -80px 120px rgba(0, 0, 0, 0.18);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -648,44 +652,44 @@
       padding: 0 22px;
     }
 
-    /* Ordmärket: blank kromskrift. Två bakgrundslager klippta till texten,
-       ett med metallfärgerna och ett med en ljusreflex. Reflexen sveper
-       i takt med splash-solens båge, så texten "reagerar" på solen. */
+    /* Ordmärket: skrift i glas, svagt genomskinlig så himlen och solen
+       anas genom bokstäverna. En ljus kant, en mjuk glöd, och en reflex
+       som sveper över texten i takt med solens båge. */
     .ordmark {
       font-family: 'Snell Roundhand', 'Segoe Script', 'Bradley Hand', cursive;
       font-weight: 700;
       line-height: 1;
       background-image:
-        linear-gradient(104deg, transparent 40%, rgba(255, 255, 255, 0.95) 50%, transparent 60%),
-        linear-gradient(176deg,
-          #eaf5ff 0%, #7fb4de 20%, #ffffff 38%, #2f6da6 56%, #bfe0fb 74%, #3f7db4 88%, #dcefff 100%);
-      background-size: 280% 100%, 100% 100%;
+        linear-gradient(104deg, transparent 42%, rgba(255, 255, 255, 0.95) 50%, transparent 58%),
+        linear-gradient(178deg,
+          rgba(255, 255, 255, 0.55) 0%,
+          rgba(255, 255, 255, 0.14) 44%,
+          rgba(255, 255, 255, 0.34) 100%);
+      background-size: 260% 100%, 100% 100%;
       background-position: 130% 0, 0 0;
       background-repeat: no-repeat;
       -webkit-background-clip: text;
       background-clip: text;
       color: transparent;
-      /* Stackade skuggor ger en liten upphöjd läpp, som blankt gjutet glas. */
+      -webkit-text-stroke: 1px rgba(255, 255, 255, 0.5);
       text-shadow:
-        0 1px 0 rgba(40, 78, 120, 0.55),
-        0 2px 0 rgba(28, 54, 84, 0.45),
-        0 4px 10px rgba(0, 0, 0, 0.5);
-      filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.6));
+        0 0 22px rgba(255, 255, 255, 0.35),
+        0 3px 16px rgba(0, 0, 0, 0.4);
     }
 
     #splash-namn {
-      margin: 0 0 14px;
+      margin: 0 0 16px;
       font-size: clamp(54px, 17vw, 82px);
       opacity: 0;
       animation: splash-in 0.8s ease 0.35s both,
-                 namn-glans 3.6s cubic-bezier(0.36, 0, 0.64, 1) 0s both;
+                 namn-glans 3.6s linear 0s both;
     }
 
-    /* Reflexen sveper från höger till vänster, ungefär som solen. */
+    /* Reflexen sveper från höger till vänster, i takt med solen. */
     @keyframes namn-glans {
       0%   { background-position: 135% 0, 0 0; }
-      50%  { background-position: 25% 0, 0 0; }
-      100% { background-position: -60% 0, 0 0; }
+      50%  { background-position: 30% 0, 0 0; }
+      100% { background-position: -55% 0, 0 0; }
     }
 
     #splash-text p {
