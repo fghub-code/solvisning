@@ -3,14 +3,25 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#e6e9f0">
   <title>Integritet – Solvisning</title>
 
   <style>
+    :root {
+      --yta: #e6e9f0;
+      --ljus: #ffffff;
+      --mork: #bfc6d4;
+      --text: #4b5566;
+      --text-svag: #8a94a7;
+      --accent: #df9440;
+      --inzankt: inset 4px 4px 8px var(--mork), inset -4px -4px 8px var(--ljus);
+    }
+
     html, body {
       margin: 0;
       padding: 0;
-      background: #0f0f10;
-      color: #f2ede4;
+      background: var(--yta);
+      color: var(--text);
       font-family: -apple-system, system-ui, sans-serif;
     }
 
@@ -20,28 +31,36 @@
       margin: 0 auto;
       padding: calc(40px + env(safe-area-inset-top)) 26px
                calc(40px + env(safe-area-inset-bottom));
-      background: radial-gradient(circle at 50% 0%,
-                  rgba(255, 179, 71, 0.16), transparent 55%);
     }
 
-    a { color: #ffcf7a; }
+    a { color: var(--accent); }
 
     h1 {
-      font-size: 26px;
-      margin: 0 0 20px;
+      font-size: 25px;
+      font-weight: 700;
+      margin: 0 0 22px;
     }
 
     h2 {
-      font-size: 16px;
-      margin: 26px 0 6px;
-      color: #ffcf7a;
+      font-size: 15px;
+      margin: 24px 0 6px;
+      color: var(--accent);
     }
 
     p {
       font-size: 15px;
       line-height: 1.55;
-      color: #d0c8b9;
+      color: var(--text-svag);
       margin: 0 0 12px;
+    }
+
+    /* Sammanfattningen i en inzänkt panel. */
+    .kort {
+      background: var(--yta);
+      box-shadow: var(--inzankt);
+      border-radius: 16px;
+      padding: 4px 18px 14px;
+      margin-top: 8px;
     }
 
     .tillbaka {
@@ -61,27 +80,29 @@
       som körs i din webbläsare.
     </p>
 
-    <h2>Vad appen använder</h2>
-    <p>
-      Kamerabilden du fryser, och din ungefärliga position, latitud och
-      longitud. Positionen behövs för att räkna ut var solen står.
-    </p>
+    <div class="kort">
+      <h2>Vad appen använder</h2>
+      <p>
+        Kamerabilden du fryser, och din ungefärliga position, latitud och
+        longitud. Positionen behövs för att räkna ut var solen står.
+      </p>
 
-    <h2>Vart det tar vägen</h2>
-    <p>
-      Ingenstans. Bilden och positionen stannar i telefonen. Inget laddas
-      upp, inget sparas mellan besök, ingen statistik samlas in. Stänger du
-      fliken är allt borta.
-    </p>
+      <h2>Vart det tar vägen</h2>
+      <p>
+        Ingenstans. Bilden och positionen stannar i telefonen. Inget laddas
+        upp, inget sparas mellan besök, ingen statistik samlas in. Stänger du
+        fliken är allt borta.
+      </p>
 
-    <h2>Varför det ändå står här</h2>
-    <p>
-      Position räknas som en personuppgift enligt GDPR även när den bara
-      används lokalt i din telefon. Så länge inget lämnar enheten räcker
-      den här sidan och raden i appen. Skulle appen någon gång börja spara
-      något på en server ändras det, och då krävs laglig grund, radering på
-      begäran och en kontaktväg.
-    </p>
+      <h2>Varför det ändå står här</h2>
+      <p>
+        Position räknas som en personuppgift enligt GDPR även när den bara
+        används lokalt i din telefon. Så länge inget lämnar enheten räcker
+        den här sidan och raden i appen. Skulle appen någon gång börja spara
+        något på en server ändras det, och då krävs laglig grund, radering på
+        begäran och en kontaktväg.
+      </p>
+    </div>
 
     <a class="tillbaka" href="index.html">← Tillbaka till appen</a>
   </div>

@@ -8,13 +8,30 @@
   <!-- Gör appen installerbar på hemskärmen. -->
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="ikoner/ikon-192.png">
-  <meta name="theme-color" content="#0f0f10">
+  <meta name="theme-color" content="#e6e9f0">
   <link rel="apple-touch-icon" href="ikoner/apple-touch-icon.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Solvisning">
 
   <style>
+    /* Neumorphism: allt ligger på en enda ljus yta. Upphöjda ytor har en
+       ljus skugga uppe till vänster och en mörk nere till höger, inzänkta
+       ytor har det omvänt. De här variablerna håller ihop hela stilen. */
+    :root {
+      --yta: #e6e9f0;          /* grundfärgen, allt bygger på den */
+      --ljus: #ffffff;         /* skugga mot ljuset */
+      --mork: #bfc6d4;         /* skugga bort från ljuset */
+      --text: #4b5566;
+      --text-svag: #8a94a7;
+      --accent: #df9440;       /* mjuk solorange */
+
+      --upphojd: 6px 6px 13px var(--mork), -6px -6px 13px var(--ljus);
+      --upphojd-s: 3px 3px 7px var(--mork), -3px -3px 7px var(--ljus);
+      --inzankt: inset 4px 4px 8px var(--mork), inset -4px -4px 8px var(--ljus);
+      --inzankt-s: inset 2px 2px 5px var(--mork), inset -2px -2px 5px var(--ljus);
+    }
+
     /* Nollställ marginaler och låt sidan fylla hela skärmen.
        height: 100% på html och body behövs för att video-elementet
        ska kunna bli 100% högt längre ner. */
@@ -22,7 +39,7 @@
       margin: 0;
       padding: 0;
       height: 100%;
-      background: #000;
+      background: var(--yta);
       /* Hindra att sidan går att dra/zooma som en vanlig webbsida.
          Det ska kännas som en app, inte ett dokument. */
       overscroll-behavior: none;
@@ -113,21 +130,23 @@
       display: none;
     }
 
-    /* Avtryckaren. I live-läge en stor rund knapp i nederkanten.
+    /* Avtryckaren. I live-läge en stor rund upphöjd knapp i nederkanten,
+       som en fysisk slutarknapp. ::before är den inzänkta "linsen" i mitten.
        env(safe-area-inset-bottom) håller den ovanför iPhones hemknappstreck. */
     #ta-bild {
       position: fixed;
       left: 50%;
       transform: translateX(-50%);
-      bottom: calc(28px + env(safe-area-inset-bottom));
+      bottom: calc(30px + env(safe-area-inset-bottom));
 
-      width: 72px;
-      height: 72px;
+      width: 78px;
+      height: 78px;
+      border: none;
       border-radius: 50%;
-      border: 4px solid rgba(255, 255, 255, 0.9);
-      background: rgba(255, 255, 255, 0.25);
-      color: #fff;
-      font-size: 26px;
+      background: var(--yta);
+      box-shadow: var(--upphojd);
+      color: var(--accent);
+      font-size: 24px;
       line-height: 1;
       display: flex;
       align-items: center;
@@ -135,24 +154,38 @@
       cursor: pointer;
     }
 
+    #ta-bild::before {
+      content: "";
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      background: var(--yta);
+      box-shadow: var(--inzankt-s);
+    }
+
     #ta-bild:active {
-      background: rgba(255, 255, 255, 0.5);
+      box-shadow: var(--inzankt);
     }
 
     /* När en bild är fryst krymper knappen och flyttar upp till höger
        hörn, utom räckhåll för tummen som drar i reglagen. Klassen
-       fryst-lage sätts på body från JS. */
+       fryst-lage sätts på body från JS. Då visas ↺-tecknet i stället
+       för linsen. */
     body.fryst-lage #ta-bild {
       left: auto;
       transform: none;
       right: calc(12px + env(safe-area-inset-right));
       top: calc(10px + env(safe-area-inset-top));
       bottom: auto;
-      width: 46px;
-      height: 46px;
-      border-width: 2px;
+      width: 48px;
+      height: 48px;
       font-size: 22px;
-      background: rgba(0, 0, 0, 0.45);
+      color: var(--text);
+      box-shadow: var(--upphojd-s);
+    }
+
+    body.fryst-lage #ta-bild::before {
+      display: none;
     }
 
     /* Ruta för felmeddelanden. Ligger som ett svart lager över allt.
@@ -166,8 +199,8 @@
       align-items: center;
       justify-content: center;
       padding: 24px;
-      color: #fff;
-      background: #000;
+      color: var(--text);
+      background: var(--yta);
       text-align: center;
       line-height: 1.5;
     }
@@ -176,35 +209,36 @@
       display: none;
     }
 
-    /* Liten statusrad högst upp. Visar vad appen gör just nu medan
-       kameran startar, försvinner när bilden är igång. */
+    /* Liten statusrad högst upp, upphöjd bricka. Visar vad appen gör just
+       nu medan kameran startar, försvinner när bilden är igång. */
     #status {
       position: fixed;
       top: calc(12px + env(safe-area-inset-top));
       left: 50%;
       transform: translateX(-50%);
-      padding: 6px 12px;
+      padding: 7px 14px;
       border-radius: 999px;
-      background: rgba(0, 0, 0, 0.6);
-      color: #fff;
+      background: var(--yta);
+      box-shadow: var(--upphojd-s);
+      color: var(--text);
       font-size: 13px;
     }
 
-    /* Kompakt inforad högst upp, under statuspillen. Kompassavläsning
-       och solens läge. Visas bara när en bild är fryst. max-width lämnar
-       plats åt knappen i högra hörnet. */
+    /* Kompakt inforad högst upp. En upphöjd bricka. Kompassavläsning och
+       solens läge. Visas bara när en bild är fryst. right lämnar plats
+       åt knappen i högra hörnet. */
     #topinfo {
       position: fixed;
       top: calc(10px + env(safe-area-inset-top));
-      /* Ligger mellan vänsterkanten och knappen i högra hörnet. */
       left: calc(10px + env(safe-area-inset-left));
-      right: calc(68px + env(safe-area-inset-right));
-      padding: 7px 12px;
-      border-radius: 12px;
-      background: rgba(0, 0, 0, 0.55);
-      color: #fff;
+      right: calc(70px + env(safe-area-inset-right));
+      padding: 9px 14px;
+      border-radius: 16px;
+      background: var(--yta);
+      box-shadow: var(--upphojd-s);
+      color: var(--text);
       font-size: 12.5px;
-      line-height: 1.35;
+      line-height: 1.4;
       text-align: center;
     }
 
@@ -225,24 +259,26 @@
     /* Rådet om hur man vrider när solen är utanför bild. */
     #sol-hint {
       margin-top: 3px;
-      color: #ffcf7a;
+      color: var(--accent);
+      font-weight: 600;
     }
 
     #sol-hint:empty {
       display: none;
     }
 
-    /* Smal list längs nederkanten med de två reglagen. Tar bara den plats
-       reglagen behöver, resten av bilden är fri. Tonad bakgrund så att
-       reglagen syns mot en ljus bild utan att bli en tung ruta. */
+    /* Kontrollbrickan längs nederkanten. En upphöjd ljus yta med rundade
+       övre hörn som håller de två reglagen. Bilden ovanför hålls fri. */
     #panel {
       position: fixed;
       left: 0;
       right: 0;
       bottom: 0;
-      padding: 6px 16px calc(8px + env(safe-area-inset-bottom));
-      background: linear-gradient(to top, rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0.28));
-      color: #fff;
+      padding: 14px 22px calc(16px + env(safe-area-inset-bottom));
+      background: var(--yta);
+      border-radius: 26px 26px 0 0;
+      box-shadow: 0 -10px 28px rgba(70, 82, 105, 0.22);
+      color: var(--text);
       box-sizing: border-box;
     }
 
@@ -250,38 +286,71 @@
       display: none;
     }
 
-    /* Ett reglage: en tunn etikettrad och själva reglaget. */
+    /* Ett reglage: en etikettrad och själva reglaget. */
     .reglage {
       display: block;
-      margin: 3px 0;
+      margin: 4px 0 10px;
+    }
+
+    .reglage:last-child {
+      margin-bottom: 2px;
     }
 
     .reglage .etikett {
       display: flex;
       justify-content: space-between;
-      font-size: 11px;
-      opacity: 0.9;
-      margin-bottom: 1px;
+      font-size: 12px;
+      color: var(--text-svag);
+      margin-bottom: 2px;
     }
 
+    /* Reglaget: en inzänkt ränna, ifylld del i accentfärg (procenten
+       sätts från JS som --fyllt), och ett upphöjt runt grepp. */
     .reglage input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
       width: 100%;
-      margin: 0;
-      accent-color: #ffb300;
-      height: 24px;
+      height: 16px;
+      margin: 6px 0 0;
+      border-radius: 999px;
+      background: linear-gradient(to right,
+                  var(--accent) 0 var(--fyllt, 0%),
+                  var(--yta) var(--fyllt, 0%) 100%);
+      box-shadow: var(--inzankt);
+      outline: none;
+    }
+
+    .reglage input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 28px;
+      height: 28px;
+      margin-top: -6px;   /* (16 − 28) / 2, centrerar greppet på rännan */
+      border-radius: 50%;
+      background: var(--yta);
+      box-shadow: 4px 4px 8px var(--mork), -4px -4px 8px var(--ljus);
+      cursor: pointer;
+    }
+
+    .reglage input[type="range"]::-moz-range-thumb {
+      width: 28px;
+      height: 28px;
+      border: none;
+      border-radius: 50%;
+      background: var(--yta);
+      box-shadow: 4px 4px 8px var(--mork), -4px -4px 8px var(--ljus);
+      cursor: pointer;
     }
 
     /* --- Startsidan --- */
 
-    /* Ligger över allt tills man trycker "Starta kameran". Egen mörk
-       bakgrund så att kameran bakom inte lyser igenom. */
+    /* Ligger över allt tills man trycker "Starta kameran". */
     #start {
       position: fixed;
       inset: 0;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
-      background: #0f0f10;
-      color: #f2ede4;
+      background: var(--yta);
+      color: var(--text);
     }
 
     #start[hidden] {
@@ -298,37 +367,36 @@
       display: flex;
       flex-direction: column;
       gap: 22px;
-      /* Varm solglöd upptill, samma ljus som appens solmarkör. */
-      background: radial-gradient(circle at 50% 0%,
-                  rgba(255, 179, 71, 0.18), transparent 60%);
     }
 
     .start-inner h1 {
       margin: 0;
       font-size: 30px;
+      font-weight: 700;
       letter-spacing: 0.4px;
+      color: var(--text);
     }
 
     .start-inner .ingress {
       margin: 0;
       font-size: 16px;
       line-height: 1.5;
-      color: #d0c8b9;
+      color: var(--text-svag);
     }
 
-    /* De tre stegen. Varje steg en siffra i en cirkel plus text. */
+    /* De tre stegen. Varje steg en upphöjd sifferbricka plus text. */
     .steg {
       margin: 0;
       padding: 0;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 14px;
     }
 
     .steg li {
       list-style: none;
       display: flex;
-      gap: 12px;
+      gap: 14px;
       align-items: flex-start;
       line-height: 1.45;
       font-size: 15px;
@@ -336,49 +404,54 @@
 
     .steg .nr {
       flex: none;
-      width: 26px;
-      height: 26px;
+      width: 30px;
+      height: 30px;
       border-radius: 50%;
-      background: rgba(255, 179, 71, 0.18);
-      color: #ffcf7a;
+      background: var(--yta);
+      box-shadow: var(--upphojd-s);
+      color: var(--accent);
       font-size: 14px;
-      font-weight: 600;
+      font-weight: 700;
       display: flex;
       align-items: center;
       justify-content: center;
     }
 
-    /* Det appen inte kan, som briefen kräver att vi säger. */
+    /* Det appen inte kan, som briefen kräver att vi säger.
+       En inzänkt panel, "ingraverad" i ytan. */
     .varning {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 10px;
       font-size: 13.5px;
       line-height: 1.5;
-      color: #b3ab9c;
-      border-left: 2px solid rgba(255, 179, 71, 0.4);
-      padding-left: 12px;
+      color: var(--text-svag);
+      background: var(--yta);
+      box-shadow: var(--inzankt);
+      border-radius: 16px;
+      padding: 16px 18px;
     }
 
     .integritet {
       margin: 0;
       font-size: 13px;
       line-height: 1.5;
-      color: #a9a293;
+      color: var(--text-svag);
     }
 
     .integritet a {
-      color: #ffcf7a;
+      color: var(--accent);
     }
 
     .hemskarm {
       margin: 0;
       font-size: 13px;
       line-height: 1.5;
-      color: #cfc7b8;
-      background: rgba(255, 179, 71, 0.12);
-      border-radius: 10px;
-      padding: 10px 12px;
+      color: var(--text-svag);
+      background: var(--yta);
+      box-shadow: var(--inzankt-s);
+      border-radius: 12px;
+      padding: 12px 14px;
     }
 
     .hemskarm[hidden] {
@@ -386,24 +459,25 @@
     }
 
     .hemskarm b {
-      color: #ffcf7a;
+      color: var(--accent);
       font-weight: 600;
     }
 
     #start-knapp {
-      margin-top: 2px;
-      padding: 16px;
+      margin-top: 4px;
+      padding: 18px;
       border: none;
-      border-radius: 14px;
-      background: #ffb300;
-      color: #1c1400;
+      border-radius: 18px;
+      background: var(--yta);
+      box-shadow: var(--upphojd);
+      color: var(--accent);
       font-size: 17px;
-      font-weight: 600;
+      font-weight: 700;
       cursor: pointer;
     }
 
     #start-knapp:active {
-      background: #e6a100;
+      box-shadow: var(--inzankt);
     }
 
     /* Liten frågeteckenknapp i live-läge, öppnar startsidan igen. */
@@ -411,17 +485,23 @@
       position: fixed;
       top: calc(12px + env(safe-area-inset-top));
       right: calc(14px + env(safe-area-inset-right));
-      width: 34px;
-      height: 34px;
+      width: 36px;
+      height: 36px;
+      border: none;
       border-radius: 50%;
-      border: 1px solid rgba(255, 255, 255, 0.5);
-      background: rgba(0, 0, 0, 0.35);
-      color: #fff;
+      background: var(--yta);
+      box-shadow: var(--upphojd-s);
+      color: var(--text-svag);
       font-size: 17px;
+      font-weight: 700;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
+    }
+
+    #hjalp:active {
+      box-shadow: var(--inzankt-s);
     }
 
     #hjalp[hidden],
@@ -962,6 +1042,14 @@
       return d;
     }
 
+    // Sätter --fyllt så att den ifyllda delen av reglaget visar hur
+    // långt greppet dragits.
+    function fyllReglage(el) {
+      const min = Number(el.min), max = Number(el.max);
+      const andel = (Number(el.value) - min) / (max - min) * 100;
+      el.style.setProperty('--fyllt', andel.toFixed(1) + '%');
+    }
+
     // Läser av båda reglagen, uppdaterar texten och räknar om solen.
     // Tidsreglaget har fast skala, hela dygnet, så tumgreppet står still
     // när man bara ändrar datum.
@@ -970,6 +1058,8 @@
       valdTid = Number(tidReglage.value);
       datumText.textContent = formateraDatum(valtDatum);
       tidText.textContent = formateraTid(valdTid);
+      fyllReglage(datumReglage);
+      fyllReglage(tidReglage);
       uppdateraSol();
     }
 
