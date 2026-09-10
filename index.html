@@ -381,18 +381,26 @@
     }
 
     .start-inner h1 {
-      margin: 0;
-      font-size: 32px;
-      font-weight: 700;
-      letter-spacing: 0.4px;
-      text-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+      margin: 4px 0 2px;
+      font-size: clamp(46px, 15vw, 66px);
+    }
+
+    /* Ordmärket på startsidan får en långsam vilande reflex. */
+    #start-namn {
+      animation: namn-glans-loop 7s ease-in-out infinite;
+    }
+
+    @keyframes namn-glans-loop {
+      0%, 100% { background-position: 130% 0, 0 0; }
+      50%      { background-position: -50% 0, 0 0; }
     }
 
     .start-inner .ingress {
       margin: 0;
-      font-size: 16px;
-      line-height: 1.5;
-      color: rgba(255, 255, 255, 0.85);
+      font-family: 'New York', ui-serif, Georgia, 'Times New Roman', serif;
+      font-size: 17px;
+      line-height: 1.55;
+      color: rgba(255, 255, 255, 0.86);
       text-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
     }
 
@@ -562,54 +570,59 @@
       to { opacity: 0; }
     }
 
-    /* Himlen bakom. Går från natt till dag till skymning i takt med solen. */
+    /* Himlen bakom. En hel dygnscykel: nästan svart före gryning, ljusnar
+       genom gryningens färger till en ljus middagshimmel, mörknar genom
+       skymningen tillbaka till natt. Alla stopp har samma struktur
+       (0% / 55% / 100%) så webbläsaren tonar mjukt mellan dem. */
     #splash-himmel {
       position: absolute;
       inset: 0;
-      animation: himmel 3.4s ease-in-out forwards;
+      animation: himmel 3.6s linear forwards;
     }
 
-    /* Alla stopp har samma struktur (0% / 55% / 100%) så webbläsaren kan
-       tona mjukt mellan gradienterna. */
     @keyframes himmel {
-      0%   { background: linear-gradient(200deg, #0c1030 0%, #1a1c3e 55%, #402a44 100%); }
-      25%  { background: linear-gradient(200deg, #26356e 0%, #6a4a86 55%, #e08a52 100%); }
-      50%  { background: linear-gradient(200deg, #3a6ea5 0%, #8fb8d8 55%, #f0d9b0 100%); }
-      75%  { background: linear-gradient(200deg, #2c4c86 0%, #7a5a94 55%, #e0925c 100%); }
-      100% { background: linear-gradient(200deg, #0c1030 0%, #1a1c3e 55%, #402a44 100%); }
+      0%   { background: linear-gradient(180deg, #090c18 0%, #0c1022 55%, #14182e 100%); }
+      16%  { background: linear-gradient(180deg, #1a2145 0%, #3a3560 55%, #b56048 100%); }
+      33%  { background: linear-gradient(180deg, #3f74b0 0%, #9ec6e6 55%, #ffe0b0 100%); }
+      50%  { background: linear-gradient(180deg, #5a97d8 0%, #bfe0f4 55%, #eef5fa 100%); }
+      67%  { background: linear-gradient(180deg, #40699a 0%, #ba8fae 55%, #e88f56 100%); }
+      84%  { background: linear-gradient(180deg, #1a2244 0%, #4e3763 55%, #b6543a 100%); }
+      100% { background: linear-gradient(180deg, #090c18 0%, #0c1022 55%, #14182e 100%); }
     }
 
-    /* Solen följer en båge över skärmen: upp från nedre vänster hörn,
-       högst upp i mitten, ner mot nedre höger. left/top i procent gör
-       banan. Färg, storlek och glöd ändras över dygnet: rött och dovt
-       vid horisonten, ljust och starkt högt uppe. */
+    /* Solen följer en mjuk, vid båge: upp från nedre vänstra hörnet,
+       högst upp mitt på skärmen, ner mot nedre högra. left/top i procent
+       ritar banan. Färg och glöd ändras: rött och dovt vid horisonten,
+       ljust och starkt högt uppe. */
     #splash-sol {
       position: absolute;
-      width: 132px;
-      height: 132px;
-      margin: -66px 0 0 -66px;   /* centrera på punkten */
+      width: 128px;
+      height: 128px;
+      margin: -64px 0 0 -64px;
       border-radius: 50%;
-      animation: sol-bana 3.4s ease-in-out forwards,
-                 sol-glod 3.4s ease-in-out forwards;
+      animation: sol-bana 3.6s cubic-bezier(0.36, 0, 0.64, 1) forwards,
+                 sol-glod 3.6s linear forwards;
     }
 
     @keyframes sol-bana {
-      0%   { left: -6%;  top: 112%; }
-      22%  { left: 16%;  top: 66%; }
-      50%  { left: 50%;  top: 22%; }
-      78%  { left: 84%;  top: 66%; }
-      100% { left: 106%; top: 112%; }
+      0%   { left: -10%; top: 118%; }
+      15%  { left: 4%;   top: 84%; }
+      30%  { left: 22%;  top: 52%; }
+      50%  { left: 50%;  top: 30%; }
+      70%  { left: 78%;  top: 52%; }
+      85%  { left: 96%;  top: 84%; }
+      100% { left: 110%; top: 118%; }
     }
 
     @keyframes sol-glod {
       0%, 100% {
-        background: radial-gradient(circle at 50% 45%, #ff9a5a, #e0562e 70%);
-        box-shadow: 0 0 46px 10px rgba(224, 86, 46, 0.5);
-        transform: scale(0.82);
+        background: radial-gradient(circle at 50% 45%, #ffb173 0%, #db4f2b 72%);
+        box-shadow: 0 0 44px 10px rgba(219, 79, 43, 0.5);
+        transform: scale(0.8);
       }
       50% {
-        background: radial-gradient(circle at 50% 45%, #fff3d8, #ffcf7a 70%);
-        box-shadow: 0 0 100px 34px rgba(255, 214, 150, 0.62);
+        background: radial-gradient(circle at 50% 42%, #fff6e2 0%, #ffd48a 72%);
+        box-shadow: 0 0 110px 40px rgba(255, 220, 158, 0.6);
         transform: scale(1);
       }
     }
@@ -632,28 +645,58 @@
 
     #splash-text {
       text-align: center;
-      color: #fff;
-      padding: 0 24px;
+      padding: 0 22px;
     }
 
-    #splash-text h1 {
-      margin: 0 0 10px;
-      font-size: 36px;
+    /* Ordmärket: blank kromskrift. Två bakgrundslager klippta till texten,
+       ett med metallfärgerna och ett med en ljusreflex. Reflexen sveper
+       i takt med splash-solens båge, så texten "reagerar" på solen. */
+    .ordmark {
+      font-family: 'Snell Roundhand', 'Segoe Script', 'Bradley Hand', cursive;
       font-weight: 700;
-      letter-spacing: 0.5px;
+      line-height: 1;
+      background-image:
+        linear-gradient(104deg, transparent 40%, rgba(255, 255, 255, 0.95) 50%, transparent 60%),
+        linear-gradient(176deg,
+          #eaf5ff 0%, #7fb4de 20%, #ffffff 38%, #2f6da6 56%, #bfe0fb 74%, #3f7db4 88%, #dcefff 100%);
+      background-size: 280% 100%, 100% 100%;
+      background-position: 130% 0, 0 0;
+      background-repeat: no-repeat;
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      /* Stackade skuggor ger en liten upphöjd läpp, som blankt gjutet glas. */
+      text-shadow:
+        0 1px 0 rgba(40, 78, 120, 0.55),
+        0 2px 0 rgba(28, 54, 84, 0.45),
+        0 4px 10px rgba(0, 0, 0, 0.5);
+      filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.6));
+    }
+
+    #splash-namn {
+      margin: 0 0 14px;
+      font-size: clamp(54px, 17vw, 82px);
       opacity: 0;
-      text-shadow: 0 2px 20px rgba(0, 0, 0, 0.45);
-      animation: splash-in 0.8s ease 0.5s forwards;
+      animation: splash-in 0.8s ease 0.35s both,
+                 namn-glans 3.6s cubic-bezier(0.36, 0, 0.64, 1) 0s both;
+    }
+
+    /* Reflexen sveper från höger till vänster, ungefär som solen. */
+    @keyframes namn-glans {
+      0%   { background-position: 135% 0, 0 0; }
+      50%  { background-position: 25% 0, 0 0; }
+      100% { background-position: -60% 0, 0 0; }
     }
 
     #splash-text p {
       margin: 0;
-      font-size: 15px;
-      line-height: 1.5;
-      color: rgba(255, 255, 255, 0.88);
+      font-family: 'New York', ui-serif, Georgia, 'Times New Roman', serif;
+      font-size: 18px;
+      line-height: 1.55;
+      color: rgba(255, 255, 255, 0.9);
       opacity: 0;
-      text-shadow: 0 1px 12px rgba(0, 0, 0, 0.4);
-      animation: splash-in 0.8s ease 0.9s forwards;
+      text-shadow: 0 1px 14px rgba(0, 0, 0, 0.45);
+      animation: splash-in 0.8s ease 0.85s forwards;
     }
 
     @keyframes splash-in {
@@ -664,7 +707,7 @@
     @media (prefers-reduced-motion: reduce) {
       #splash-himmel,
       #splash-sol,
-      #splash-text h1,
+      #splash-namn,
       #splash-text p {
         animation-duration: 0.01s;
         animation-delay: 0s;
@@ -727,7 +770,7 @@
     <div id="splash-sol"></div>
     <div id="splash-glas">
       <div id="splash-text">
-        <h1 id="splash-namn">Solläge</h1>
+        <h1 id="splash-namn" class="ordmark">Solläge</h1>
         <p>Se var solen står i en lägenhet, vilken dag som helst på året.</p>
       </div>
     </div>
@@ -736,7 +779,7 @@
   <!-- Startsidan. Visas första gången, sen bakom frågeteckenknappen. -->
   <div id="start">
     <div class="start-inner">
-      <h1 id="start-namn">Solläge</h1>
+      <h1 id="start-namn" class="ordmark">Solläge</h1>
       <p class="ingress">
         Se var solen står i en lägenhet, vilken dag och tid på året som helst.
         Ta en bild genom fönstret under visningen och dra i reglagen.
@@ -1036,7 +1079,7 @@
     // Splashen tonas bort när animationen är klar, eller om man trycker.
     // Kortare väntan om man valt att dämpa rörelser.
     const dampaRorelse = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    setTimeout(avslutaSplash, dampaRorelse ? 900 : 3500);
+    setTimeout(avslutaSplash, dampaRorelse ? 900 : 3800);
     splash.addEventListener('click', avslutaSplash);
 
 
