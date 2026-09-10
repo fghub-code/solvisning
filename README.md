@@ -1,6 +1,8 @@
-# Solvisning
+# Solläge
 
 Webbapp för lägenhetsvisningar. Rikta mobilen mot ett fönster, ta en bild, dra i reglage för datum och tid och se var solen står i vyn.
+
+Appnamnet sätts i `index.html` via konstanten `APPNAMN` (splash, startsida, fliktitel) och separat i `manifest.json`, `apple-mobile-web-app-title` och `integritet.html`.
 
 Brief och handover finns i `OUTPUT/Solvisning/`.
 
